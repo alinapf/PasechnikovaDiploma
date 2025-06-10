@@ -1,0 +1,350 @@
+﻿@page
+@model VeterinaryClinic.Pages.CreateAppointmentModel
+@{
+    ViewData["Title"] = Model.IsEditMode ? "Редактирование записи" : "Запись на прием";
+}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>@ViewData["Title"]</title>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+            padding-top: 40px;
+        }
+
+        .appointment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 0 0 40px;
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+            h2::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 15px auto;
+                border-radius: 2px;
+                animation: scaleIn 0.8s ease-out 0.3s both;
+            }
+
+        .appointment-form {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.3s forwards;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-text);
+            transition: var(--transition);
+        }
+
+        .form-control {
+            width: 100%;
+            height: 50px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            background-color: var(--white);
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(78, 140, 255, 0.2);
+                outline: none;
+            }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23636e72' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+            .btn-primary:hover {
+                background: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(58, 123, 224, 0.3);
+            }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: var(--white);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        /* Animations */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes scaleIn {
+            from {
+                transform: scaleX(0);
+            }
+
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .appointment-container {
+                padding: 0 15px;
+            }
+
+            h2 {
+                font-size: 2rem;
+                margin-bottom: 30px;
+            }
+
+            .appointment-form {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<div class="appointment-container">
+    <h2>@ViewData["Title"]</h2>
+
+    <form method="post" class="appointment-form">
+        <input type="hidden" asp-for="IsEditMode" />
+        <input type="hidden" asp-for="AppointmentId" />
+
+        <div class="form-group">
+            <label for="doctorSelect">Выберите врача</label>
+            <select asp-for="SelectedDoctorId" id="doctorSelect" class="form-control" required>
+                <option value="">Выберите врача</option>
+                @foreach (var doctor in Model.Doctors)
+                {
+                    <option value="@doctor.DoctorId">@doctor.Name - @doctor.Specialization</option>
+                }
+            </select>
+        </div>
+        @if (User.IsInRole("Админ"))
+        {
+            <div class="form-group">
+                <label for="clientSelect">Клиент</label>
+                <select asp-for="SelectedClientId" id="clientSelect" class="form-control" required @@(Model.IsEditMode ? "disabled" : "")>
+                    <option value="">Выберите клиента</option>
+                    @foreach (var client in Model.Clients)
+                    {
+                        <option value="@client.ClientId">@client.Name</option>
+                    }
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="datepicker">Дата приема</label>
+                <input type="date" asp-for="Date" id="datepicker" class="form-control" />
+            </div>
+        }
+
+        @if (User.IsInRole("Клиент"))
+        {
+            <div class="form-group">
+                <label for="datepicker">Дата приема</label>
+                <input type="date" asp-for="Date" id="datepicker" class="form-control" required min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+            </div>
+            
+        }
+
+
+        <div class="form-group">
+            <label for="timeSelect">Выберите время</label>
+            <select asp-for="SelectedTime" id="timeSelect" class="form-control" required>
+                <option value="">Сначала выберите врача и дату</option>
+                @foreach (var time in Model.AvailableTimes)
+                {
+                    <option value="@time">@time</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="serviceSelect">Выберите услугу</label>
+            <select asp-for="SelectedServiceId" id="serviceSelect" class="form-control" required>
+                <option value="">Сначала выберите врача</option>
+                @foreach (var service in Model.Services)
+                {
+                    <option value="@service.ServiceId">@service.Name</option>
+                }
+            </select>
+        </div>
+
+        @if (User.IsInRole("Админ"))
+        {
+            <div class="form-group">
+                <label for="statusSelect">Статус записи</label>
+                <select asp-for="Status" id="statusSelect" class="form-control" required>
+                    <option value="запланировано">Запланировано</option>
+                    <option value="завершено">Завершен</option>
+                </select>
+            </div>
+        }
+        else
+        {
+            <input type="hidden" asp-for="Status" />
+        }
+
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+            @(Model.IsEditMode ? "Сохранить изменения" : "Записаться на прием")
+            <span class="loading" id="loading" style="display: none;"></span>
+        </button>
+    </form>
+</div>
+
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+
+<script>
+    $(function() {
+        // Update times when doctor or date changes
+        $(document).ready(function() {
+            $('#datepicker').change(function() {
+                var selectedDate = $(this).val();
+                var doctorId = $('#doctorSelect').val(); // Предполагаем, что у вас есть выбор врача
+
+                if (doctorId && selectedDate) {
+                    $.get('/CreateAppointment?handler=AvailableTimes', { date: selectedDate, doctorId: doctorId }, function(data) {
+                        var timeSelect = $('#timeSelect');
+                        timeSelect.empty(); // Очистить предыдущие значения
+
+                        $.each(data, function(i, time) {
+                            timeSelect.append($('<option>').val(time).text(time));
+                        });
+                    }).fail(function() {
+                        alert('Ошибка при загрузке доступных времён.');
+                    });
+                }
+            });
+        });
+
+        // Update services when doctor changes
+        $(document).ready(function() {
+            $('#doctorSelect').change(function() {
+                var doctorId = $(this).val();
+                var serviceSelect = $('#serviceSelect');
+                serviceSelect.empty(); // Очистить предыдущие значения
+                serviceSelect.append($('<option>').val('').text('Выберите услугу')); // Добавить начальное значение
+
+                if (doctorId) {
+                    $.get('/CreateAppointment?handler=Services', { doctorId: doctorId }, function(data) {
+                        $.each(data, function(i, service) {
+                            serviceSelect.append($('<option>').val(service.serviceId).text(service.name));
+                        });
+                    }).fail(function() {
+                        alert('Ошибка при загрузке услуг.');
+                    });
+                }
+            });
+        });
+
+        // Show loading indicator on form submit
+        $('form').submit(function() {
+            $('#loading').show();
+            $('#submitBtn').prop('disabled', true);
+        });
+    });
+</script>
+
+

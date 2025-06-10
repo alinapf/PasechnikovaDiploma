@@ -1,0 +1,218 @@
+﻿@page "{userId:int}"
+@model VeterinaryClinic.Pages.ProfileModel
+@{
+    ViewData["Title"] = "Profile";
+}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Профиль пользователя</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            min-height: 100vh;
+            padding-top: 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .profile-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: none;
+        }
+
+        .profile-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(to right, #4e8cff, #6c5ce7);
+        }
+
+        .profile-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2d3436;
+            font-weight: 700;
+            font-size: 2rem;
+            position: relative;
+        }
+
+        .profile-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: #ff5e5f;
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+
+        .form-control:focus {
+            border-color: #4e8cff;
+            box-shadow: 0 0 0 0.2rem rgba(78, 140, 255, 0.25);
+            background-color: white;
+        }
+
+        .form-control[readonly] {
+            background-color: #f0f0f0;
+            opacity: 1;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: none;
+            flex: 1;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background-color: #4e8cff;
+            background-image: linear-gradient(to right, #4e8cff, #6c5ce7);
+            box-shadow: 0 4px 15px rgba(78, 140, 255, 0.3);
+        }
+
+        .btn-danger {
+            background-color: #ff5e5f;
+            background-image: linear-gradient(to right, #ff5e5f, #ff7675);
+            box-shadow: 0 4px 15px rgba(255, 94, 95, 0.3);
+        }
+
+        .btn-info {
+            background-color: #00cec9;
+            background-image: linear-gradient(to right, #00cec9, #55efc4);
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.3);
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: #4e8cff;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            font-weight: 600;
+        }
+
+        .text-muted {
+            font-size: 0.85rem;
+            color: #636e72 !important;
+        }
+
+        @@media (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+                background: #f8f9fa;
+            }
+
+            .profile-container {
+                padding: 25px 20px;
+                box-shadow: none;
+                border: 1px solid #e0e0e0;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<div class="profile-container">
+    <h2 class="profile-title">Профиль пользователя</h2>
+
+    <form method="post">
+        <!-- Основная информация -->
+        <div class="form-group">
+            <label asp-for="UserProfile.Username">Имя пользователя</label>
+            <input asp-for="UserProfile.Username" class="form-control" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="UserProfile.Email">Электронная почта</label>
+            <input asp-for="UserProfile.Email" class="form-control" readonly />
+        </div>
+
+        <div class="text-center mb-4">
+            <a href="/ChangePassword" class="btn btn-info">Изменить пароль</a>
+        </div>
+
+        @if (User.IsInRole("Клиент"))
+        {
+            <!-- Информация о клиенте -->
+            <h5 class="section-title">Личная информация</h5>
+            <div class="form-group">
+                <label asp-for="UserProfile.ClientName">ФИО</label>
+                <input asp-for="UserProfile.ClientName" class="form-control" />
+                <small class="form-text text-muted">Не более 100 символов</small>
+            </div>
+            <div class="form-group">
+                <label asp-for="UserProfile.Phone">Телефон</label>
+                <input asp-for="UserProfile.Phone" class="form-control" />
+                <small class="form-text text-muted">Формат: +7 (XXX) XXX-XX-XX</small>
+            </div>
+            <div class="form-group">
+                <label asp-for="UserProfile.Address">Адрес</label>
+                <input asp-for="UserProfile.Address" class="form-control" />
+            </div>
+
+            <!-- Информация о питомце -->
+            <h5 class="section-title">Информация о питомце</h5>
+            <div class="form-group">
+                <label asp-for="UserProfile.PetName">Кличка питомца</label>
+                <input asp-for="UserProfile.PetName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="UserProfile.PetType">Вид питомца</label>
+                <input asp-for="UserProfile.PetType" class="form-control" />
+                <small class="form-text text-muted">Например: Собака, Кошка, Попугай</small>
+            </div>
+        }
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            <button type="submit" class="btn btn-danger" formaction="@Url.Page("Profile", "Logout")">Выйти</button>
+        </div>
+    </form>
+</div>

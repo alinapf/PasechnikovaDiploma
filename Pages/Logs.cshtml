@@ -1,0 +1,213 @@
+﻿@page
+@model VeterinaryClinic.Pages.LogsModel
+@{
+    ViewData["Title"] = "Логистика системы";
+}
+
+<head>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .logs-header {
+            text-align: center;
+            margin: 60px 0 40px;
+            color: var(--dark-text);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+            .logs-header::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 20px auto;
+                border-radius: 2px;
+            }
+
+        .logs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 15px;
+            margin: 30px 0;
+        }
+
+            .logs-table thead th {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 15px 20px;
+                text-align: left;
+                font-weight: 600;
+                border: none;
+            }
+
+                .logs-table thead th:first-child {
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .logs-table thead th:last-child {
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+            .logs-table tbody tr {
+                background-color: white;
+                box-shadow: var(--shadow);
+                transition: var(--transition);
+                border-radius: var(--border-radius);
+            }
+
+                .logs-table tbody tr:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+                }
+
+            .logs-table tbody td {
+                padding: 20px;
+                border: none;
+                vertical-align: middle;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+
+                .logs-table tbody td:first-child {
+                    border-left: 1px solid rgba(0,0,0,0.05);
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .logs-table tbody td:last-child {
+                    border-right: 1px solid rgba(0,0,0,0.05);
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+        .log-user {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 1.1rem;
+        }
+
+        .log-action {
+            color: var(--dark-text);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .log-timestamp {
+            color: var(--light-text);
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+            .log-timestamp::before {
+                content: '🕒';
+                margin-right: 8px;
+                font-size: 0.9rem;
+            }
+
+        .system-log {
+            background-color: rgba(108, 92, 231, 0.05);
+        }
+
+        .user-log {
+            background-color: rgba(78, 140, 255, 0.05);
+        }
+
+        /* Анимации */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Адаптивность */
+        @@media (max-width: 768px) {
+            .logs-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+
+<div class="logs-container">
+    <h1 class="logs-header">Логи системы</h1>
+
+    <table class="logs-table">
+        <thead>
+            <tr>
+                <th>Пользователь</th>
+                <th>Действие</th>
+                <th>Время</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model.Logs)
+            {
+                <tr class="animate-fade @(log.User == null ? "system-log" : "user-log")"
+                    style="animation-delay: @(Model.Logs.IndexOf(log) * 0.05)s">
+                    <td>
+                        <div class="log-user">@(log.User?.Username ?? "System")</div>
+                    </td>
+                    <td>
+                        <div class="log-action">@log.Action</div>
+                    </td>
+                    <td>
+                        <span class="log-timestamp">@log.Timestamp</span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        // Плавное появление элементов
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.animate-fade');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.05}s`;
+            });
+        });
+    </script>
+}

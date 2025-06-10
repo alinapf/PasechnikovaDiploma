@@ -1,0 +1,14 @@
+﻿.star-rating {
+    display: flex; /* Для выравнивания звезд в ряд */
+}
+
+.star {
+    font-size: 30px; /* Размер звезд */
+    color: lightgray; /* Цвет неактивных звезд */
+    margin: 0 2px; /* Отступ между звездами */
+}
+
+.star.active {
+    color: gold; /* Цвет активных звезд */
+}
+

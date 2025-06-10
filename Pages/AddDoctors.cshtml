@@ -1,0 +1,201 @@
+﻿@page "{id:int?}"
+@model VeterinaryClinic.Pages.AddDoctorsModel
+@{
+    ViewData["Title"] = Model.Doctor.DoctorId == 0 ? "Добавить врача" : "Редактировать врача";
+}
+
+<head>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .doctor-container {
+            max-width: 800px;
+            margin: 60px auto;
+            background-color: var(--white);
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        .doctor-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: var(--dark-text);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+            color: var(--dark-text);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+            input:focus,
+            textarea:focus,
+            select:focus {
+                border-color: var(--primary-color);
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(78, 140, 255, 0.2);
+            }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: var(--transition);
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            margin-right: 10px;
+        }
+
+            .btn-primary:hover {
+                background-color: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(78, 140, 255, 0.3);
+            }
+
+        .btn-danger {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+            .btn-danger:hover {
+                background-color: #e05555;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+            }
+
+        .text-danger {
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        @@keyframes fadeIn {
+
+            from
+            {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+        }
+
+        @@media (max-width: 768px) {
+            .doctor-container
+
+            {
+                padding: 20px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+        }
+    </style>
+</head>
+<div class="doctor-container">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <h1 class="doctor-title">@(Model.Doctor.DoctorId == 0 ? "Добавить нового врача" : "Редактировать врача")</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Doctor.DoctorId" />
+
+        <div class="form-group">
+            <label asp-for="Doctor.Name">Имя</label>
+            <input asp-for="Doctor.Name" class="form-control" />
+            <span asp-validation-for="Doctor.Name" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Doctor.Specialization">Специализация</label>
+            <input asp-for="Doctor.Specialization" class="form-control" required />
+            <span asp-validation-for="Doctor.Specialization" class="text-danger"></span>
+        </div>
+
+
+        <div class="form-group">
+            <label asp-for="Doctor.Bio">Биография</label>
+            <textarea asp-for="Doctor.Bio" class="form-control"></textarea>
+            <span asp-validation-for="Doctor.Bio" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="PhotoFile">Фото врача</label>
+            <input type="file" asp-for="PhotoFile" class="form-control" accept="image/*" />
+            <span asp-validation-for="PhotoFile" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a asp-page="./Doctors" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

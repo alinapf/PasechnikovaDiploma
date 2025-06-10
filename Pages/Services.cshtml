@@ -1,0 +1,321 @@
+﻿@page
+@using System.Security.Claims
+@model VeterinaryClinic.Pages.ServiceModel
+@{
+    ViewData["Title"] = "Список услуг";
+}
+
+<head>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .services-header {
+            text-align: center;
+            margin: 60px 0 40px;
+            color: var(--dark-text);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+            .services-header::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 20px auto;
+                border-radius: 2px;
+            }
+
+        .services-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .services-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 15px;
+            margin: 30px 0;
+        }
+
+            .services-table thead th {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 15px 20px;
+                text-align: left;
+                font-weight: 600;
+                border: none;
+            }
+
+                .services-table thead th:first-child {
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .services-table thead th:last-child {
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+            .services-table tbody tr {
+                background-color: white;
+                box-shadow: var(--shadow);
+                transition: var(--transition);
+                border-radius: var(--border-radius);
+            }
+
+                .services-table tbody tr:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+                }
+
+            .services-table tbody td {
+                padding: 20px;
+                border: none;
+                vertical-align: middle;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+
+                .services-table tbody td:first-child {
+                    border-left: 1px solid rgba(0,0,0,0.05);
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .services-table tbody td:last-child {
+                    border-right: 1px solid rgba(0,0,0,0.05);
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+        .service-name {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 1.1rem;
+        }
+
+        .service-description {
+            color: var(--light-text);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .service-specialization {
+            display: inline-block;
+            background: rgba(78, 140, 255, 0.1);
+            color: var(--primary-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .service-price {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        .service-duration {
+            color: var(--light-text);
+            display: flex;
+            align-items: center;
+        }
+
+            .service-duration::before {
+                content: '⏱';
+                margin-right: 8px;
+                font-size: 0.9rem;
+            }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-edit {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+            .btn-edit:hover {
+                background-color: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(78, 140, 255, 0.3);
+            }
+
+        .btn-delete {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+            .btn-delete:hover {
+                background-color: #e05555;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+            }
+
+        .btn-add {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 25px;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+            .btn-add:hover {
+                background-color: #e05555;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(255, 126, 95, 0.3);
+            }
+
+            .btn-add::before {
+                content: '+';
+                font-size: 1.2rem;
+            }
+
+        /* Анимации */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Адаптивность */
+        @@media (max-width: 768px) {
+            .services-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<div class="services-container">
+    <h1 class="services-header">Список услуг</h1>
+
+    <table class="services-table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Специализация</th>
+                <th>Продолжительность</th>
+                <th>Цена</th>
+                @if (User.IsInRole("Админ"))
+                {
+                    <th>Действия</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Services)
+            {
+                <tr class="animate-fade" style="animation-delay: @(Model.Services.IndexOf(item) * 0.05)s">
+                    <td>
+                        <div class="service-name">@item.Name</div>
+                    </td>
+                    <td>
+                        <div class="service-description">@item.Description</div>
+                    </td>
+                    <td>
+                        <span class="service-specialization">@item.Specialization</span>
+                    </td>
+                    <td>
+                        <span class="service-duration">@item.DurationMinutes мин</span>
+                    </td>
+                    <td>
+                        <span class="service-price">@item.Price?.ToString("0.00")₽</span>
+                    </td>
+                    @if (User.IsInRole("Админ"))
+                    {
+                        <td>
+                            <div class="action-buttons">
+                                <a asp-page="/AddService" asp-route-id="@item.ServiceId" class="btn btn-edit">Редактировать</a>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@item.ServiceId" class="d-inline">
+                                    <button type="submit" class="btn btn-delete"
+                                            onclick="return confirm('Вы уверены, что хотите удалить услугу?')">
+                                        Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (User.IsInRole("Админ"))
+    {
+        <a class="btn btn-add" asp-page="/AddService">Добавить новую услугу</a>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Плавное появление элементов
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.animate-fade');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.05}s`;
+            });
+        });
+    </script>
+}

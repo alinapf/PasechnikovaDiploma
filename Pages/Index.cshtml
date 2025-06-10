@@ -1,0 +1,489 @@
+﻿@page
+@model VeterinaryClinic.Pages.IndexModel
+@{
+    ViewData["Title"] = "Счастливые Лапки - Ветеринарная клиника";
+}
+
+<head>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, rgba(78, 140, 255, 0.8) 0%, rgba(108, 92, 231, 0.8) 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 60px;
+        }
+
+            .hero-section::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: url('https://images.unsplash.com/photo-1530036854756-7da82e31c7e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') center/cover no-repeat;
+                z-index: -1;
+                opacity: 0.2;
+            }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            font-weight: 300;
+        }
+
+        .btn-hero {
+            display: inline-block;
+            padding: 15px 30px;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(255, 126, 95, 0.3);
+        }
+
+            .btn-hero:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(255, 126, 95, 0.4);
+                background: #ff4a45;
+                color: white;
+            }
+
+        .section-title {
+            text-align: center;
+            margin: 60px 0 40px;
+            color: var(--dark-text);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+            .section-title::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 20px auto;
+                border-radius: 2px;
+            }
+
+        .clinic-info {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--light-text);
+            line-height: 1.8;
+            padding: 0 20px;
+        }
+
+            .clinic-info p {
+                margin-bottom: 25px;
+            }
+
+        .highlight-text {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .paw-icon {
+            color: var(--secondary-color);
+            margin: 0 5px;
+        }
+
+        /* Стили для формы отзыва */
+        .review-form-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            margin: 60px auto;
+            max-width: 700px;
+            box-shadow: var(--shadow);
+        }
+
+        .review-form-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: var(--dark-text);
+        }
+
+
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(78, 140, 255, 0.2);
+            }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn-submit {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: block;
+            margin: 30px auto 0;
+            transition: var(--transition);
+            width: 200px;
+            text-align: center;
+        }
+
+            .btn-submit:hover {
+                background: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(78, 140, 255, 0.3);
+            }
+
+        /* Стили для отзывов */
+        .reviews-section {
+            padding: 60px 0;
+            background: rgba(248, 249, 250, 0.7);
+        }
+
+        .reviews-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .review-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+            .review-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .review-client {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        .review-date {
+            color: var(--light-text);
+            font-size: 0.9rem;
+        }
+
+        .review-rating {
+            margin: 10px 0;
+        }
+
+
+        .review-text {
+            color: var(--light-text);
+            line-height: 1.7;
+            margin: 15px 0;
+        }
+
+        .review-doctor {
+            font-style: italic;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .btn-more {
+            background: var(--white);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: block;
+            margin: 40px auto 0;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+            .btn-more:hover {
+                background: var(--primary-color);
+                color: white;
+                transform: translateY(-2px);
+            }
+
+        .btn-less {
+            background: var(--white);
+            color: var(--secondary-color);
+            border: 2px solid var(--secondary-color);
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: block;
+            margin: 40px auto 0;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+            .btn-less:hover {
+                background: var(--secondary-color);
+                color: white;
+                transform: translateY(-2px);
+            }
+
+        .hidden-reviews {
+            display: none;
+        }
+
+        /* Анимации */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Адаптивность */
+        @@media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2rem;
+                padding: 0 20px;
+            }
+
+            .review-form-container {
+                padding: 25px;
+            }
+
+            .review-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<!-- Герой-секция -->
+<section class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">Счастливые Лапки <i class="paw-icon">🐾</i></h1>
+        <p class="hero-subtitle">Где каждый питомец получает заботу, а хозяин - уверенность! Наша миссия - дарить здоровье и радость вашим четвероногим друзьям.</p>
+        <a href="#reviews" class="btn-hero">Читать отзывы</a>
+    </div>
+</section>
+
+<!-- О клинике -->
+<div class="container">
+    <section id="clinic-info">
+        <h2 class="section-title">Добро пожаловать в Счастливые Лапки!</h2>
+        <div class="clinic-info">
+            <p>В <span class="highlight-text">Счастливых Лапках</span> мы не просто лечим животных - мы создаем историю их здоровья и благополучия. Каждый визит к нам - это шаг к долгой и счастливой жизни вашего питомца.</p>
+
+            <p>Наши <span class="highlight-text">врачи-профессионалы</span> с теплотой и вниманием относятся к каждому пациенту. Мы используем современное оборудование и индивидуальный подход, чтобы ваш питомец получил именно ту помощь, которая ему нужна.</p>
+
+            <p>От <span class="highlight-text">профилактических осмотров</span> до сложных операций - мы предлагаем полный спектр ветеринарных услуг. А еще у нас всегда царит добрая атмосфера, где даже самые тревожные хозяева чувствуют себя спокойно.</p>
+
+            <p>Потому что для нас <span class="highlight-text">ваш питомец - не просто пациент, а член семьи</span>, который заслуживает самого лучшего ухода и внимания.</p>
+        </div>
+    </section>
+</div>
+
+<!-- Форма отзыва -->
+@if (User.IsInRole("Клиент"))
+{
+    <div class="review-form-container animate-fade">
+        <h3 class="review-form-title">Поделитесь впечатлениями</h3>
+        <form method="post" asp-page-handler="SubmitReview">
+            <div class="star-rating2">
+                <input type="radio" id="star5" name="Rating" value="5" />
+                <label for="star5" class="star"></label>
+
+                <input type="radio" id="star4" name="Rating" value="4" />
+                <label for="star4" class="star"></label>
+
+                <input type="radio" id="star3" name="Rating" value="3" />
+                <label for="star3" class="star"></label>
+
+                <input type="radio" id="star2" name="Rating" value="2" />
+                <label for="star2" class="star"></label>
+
+                <input type="radio" id="star1" name="Rating" value="1" />
+                <label for="star1" class="star"></label>
+            </div>
+
+            <select name="SelectedDoctorId" id="doctorSelect" class="form-control" required>
+                <option value="">Выберите врача</option>
+                @foreach (var doctor in Model.Doctors)
+                {
+                    <option value="@doctor.DoctorId">@doctor.Name</option>
+                }
+            </select>
+
+            <textarea name="Comment" placeholder="Расскажите, как прошёл ваш визит в Счастливые Лапки..." class="form-control" required></textarea>
+
+            <button type="submit" class="btn-submit">Оставить отзыв</button>
+        </form>
+    </div>
+}
+
+<!-- Отзывы -->
+<section id="reviews" class="reviews-section">
+    <div class="container">
+        <h2 class="section-title">Отзывы довольных хозяев <i class="paw-icon">🐾</i></h2>
+
+        <div class="reviews-container">
+            <div class="row">
+                @for (int i = 0; i < Math.Min(Model.Reviews.Count, 3); i++)
+                {
+                    var review = Model.Reviews[i];
+                    <div class="col-md-4 animate-fade" style="animation-delay: @(i * 0.1)s">
+                        <div class="review-card">
+                            <div class="review-header">
+                                <span class="review-client">@review.ClientName</span>
+                                <span class="review-date">@review.CreatedAt.ToString("dd.MM.yyyy")</span>
+                            </div>
+                            <div class="review-rating">
+                                <div class="star-rating mb-2">
+                                    @for (int j = 0; j < review.Rating; j++)
+                                    {
+                                        <label class="star active">&#9733;</label>
+                                    }
+                                    @for (int j = review.Rating; j < 5; j++)
+                                    {
+                                        <label class="star">&#9734;</label>
+                                    }
+                                </div>
+                            </div>
+                            <p class="review-text">@review.Comment</p>
+                            <p class="review-doctor">Врач: @review.DoctorName</p>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Скрытые отзывы -->
+            <div id="allReviews" class="hidden-reviews">
+                <div class="row">
+                    @foreach (var review in Model.Reviews.Skip(3))
+                    {
+                        <div class="col-md-4">
+                            <div class="review-card">
+                                <div class="review-header">
+                                    <span class="review-client">@review.ClientName</span>
+                                    <span class="review-date">@review.CreatedAt.ToString("dd.MM.yyyy")</span>
+                                </div>
+                                <div class="review-rating">
+                                    <div class="star-rating mb-2">
+                                        @for (int j = 0; j < review.Rating; j++)
+                                        {
+                                            <label class="star active">&#9733;</label>
+                                        }
+                                        @for (int j = review.Rating; j < 5; j++)
+                                        {
+                                            <label class="star">&#9734;</label>
+                                        }
+                                    </div>
+                                </div>
+                                <p class="review-text">@review.Comment</p>
+                                <p class="review-doctor">Врач: @review.DoctorName</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Кнопки управления отзывами -->
+            @if (Model.Reviews.Count > 3)
+            {
+                <button id="showAllReviews" class="btn-more">Показать все отзывы (@(Model.Reviews.Count - 3))</button>
+                <button id="hideReviews" class="btn-less hidden-reviews">Скрыть отзывы</button>
+            }
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        // Управление отображением отзывов
+        document.getElementById("showAllReviews")?.addEventListener('click', function() {
+            document.getElementById("allReviews").classList.remove('hidden-reviews');
+            document.getElementById("hideReviews").classList.remove('hidden-reviews');
+            this.classList.add('hidden-reviews');
+        });
+
+        document.getElementById("hideReviews")?.addEventListener('click', function() {
+            document.getElementById("allReviews").classList.add('hidden-reviews');
+            document.getElementById("showAllReviews").classList.remove('hidden-reviews');
+            this.classList.add('hidden-reviews');
+        });
+
+        // Плавная прокрутка
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,49 @@
+﻿@page "{id:int?}"
+@model VeterinaryClinic.Pages.AddUserModel
+@{
+    ViewData["Title"] = Model.User.UserId == 0 ? "Добавить пользователя" : "Редактировать пользователя";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form method="post">
+    <input type="hidden" asp-for="User.UserId" />
+
+    <div class="form-group">
+        <label asp-for="User.Username"></label>
+        <input asp-for="User.Username" class="form-control" />
+        <span asp-validation-for="User.Username" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="User.Email"></label>
+        <input asp-for="User.Email" class="form-control" />
+        <span asp-validation-for="User.Email" class="text-danger"></span>
+    </div>
+
+    @if (Model.User.UserId == 0)
+    {
+        <div class="form-group">
+            <label asp-for="User.Password"></label>
+            <input asp-for="User.Password" type="password" class="form-control" />
+            <span asp-validation-for="User.Password" class="text-danger"></span>
+        </div>
+    }
+
+    <div class="form-group">
+        <label asp-for="User.Role"></label>
+        <select asp-for="User.Role" class="form-control">
+            <option value="Client">Клиент</option>
+            <option value="Doctor">Врач</option>
+            <option value="Admin">Админ</option>
+        </select>
+        <span asp-validation-for="User.Role" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a asp-page="./Users" class="btn btn-secondary">Отмена</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

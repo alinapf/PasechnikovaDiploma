@@ -1,0 +1,25 @@
+﻿.star-rating2 {
+    display: flex;
+    flex-direction: row-reverse; /* Звезды идут слева направо */
+    justify-content:start /* Выравнивание по левому краю */
+}
+
+.star-rating2 input[type="radio"] {
+    display: none; /* Скрываем радиокнопки */
+}
+
+/* Пустая звезда по умолчанию */
+.star-rating2 label.star::before {
+    content: '\2606'; /* ☆ */
+    font-size: 2em;
+    color: gray;
+    cursor: pointer;
+}
+
+/* Заполненная звезда при наведении или выборе */
+.star-rating2 label.star:hover::before,
+.star-rating2 label.star:hover ~ label.star::before,
+.star-rating2 input[type="radio"]:checked ~ label.star::before {
+    content: '\2605'; /* ★ */
+    color: gold;
+}

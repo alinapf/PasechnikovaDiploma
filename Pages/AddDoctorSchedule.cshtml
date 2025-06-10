@@ -1,0 +1,356 @@
+﻿@page "{doctorId?}"
+@model VeterinaryClinic.Pages.AddDoctorScheduleModel
+
+@{
+    ViewData["Title"] = "График работы врача";
+}
+
+<h2>График работы: @Model.ViewModel.DoctorName</h2>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5>Настройки расписания</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group-vertical w-100 mb-3">
+                    <button id="appointmentBtn" class="btn btn-success">Прием пациентов</button>
+                    <button id="breakBtn" class="btn btn-danger mt-2">Перерыв</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div id="calendar"></div>
+    </div>
+</div>
+<button id="addDefaultSchedule" class="btn btn-secondary">Добавить стандартное</button>
+<form method="post" id="saveForm">
+    <input type="hidden" asp-for="ViewModel.DoctorId" />
+    <input type="hidden" id="eventsData" name="EventsJson" />
+    <button type="submit" class="btn btn-primary mt-3">Сохранить изменения</button>
+</form>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" />
+    <style>
+        /* Основные стили */
+        #external-events {
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1rem;
+        }
+        
+        .fc-event {
+            cursor: move;
+            margin: 0.5rem 0;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .fc-event:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .fc-event.bg-success {
+            background-color: #10b981;
+        }
+        
+        .fc-event.bg-danger {
+            background-color: #ef4444;
+        }
+        
+        #calendar {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        
+        /* Карточка с настройками */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        /* Формы и кнопки */
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #475569;
+        }
+        
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary {
+            background-color: #e2e8f0;
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+            border-color: #cbd5e1;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+        
+        /* Адаптивные отступы */
+        .row {
+            margin-left: -0.75rem;
+            margin-right: -0.75rem;
+        }
+        
+        .col-md-3, .col-md-9 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        
+        /* Заголовок */
+        h2 {
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* Разделитель */
+        hr {
+            margin: 1.5rem 0;
+            border-color: #e2e8f0;
+        }
+        
+        /* Календарь */
+        .fc-header-toolbar {
+            padding: 1rem;
+            margin-bottom: 0;
+            background-color: #f8fafc;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .fc-daygrid-day {
+            border-color: #e2e8f0 !important;
+        }
+        
+        .fc-col-header-cell {
+            background-color: #f8fafc;
+            border-color: #e2e8f0 !important;
+        }
+        
+        .fc-day-today {
+            background-color: #eff6ff !important;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var currentEventType = 0; // По умолчанию "Прием пациентов"
+            
+            // Устанавливаем обработчики для кнопок
+            document.getElementById('appointmentBtn').addEventListener('click', function() {
+                currentEventType = 0;
+                this.classList.add('active');
+                document.getElementById('breakBtn').classList.remove('active');
+            });
+            
+            document.getElementById('breakBtn').addEventListener('click', function() {
+                currentEventType = 1;
+                this.classList.add('active');
+                document.getElementById('appointmentBtn').classList.remove('active');
+            });
+            
+            // Активируем кнопку "Прием" по умолчанию
+            document.getElementById('appointmentBtn').classList.add('active');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'ru',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                initialView: 'timeGridWeek',
+                editable: true,
+                selectable: true,
+                slotDuration: '00:30:00',
+                slotMinTime: '08:00:00',
+                slotMaxTime: '20:00:00',
+                events: @Html.Raw(Json.Serialize(Model.ViewModel.Events.Select(e => new {
+                    title = e.Title,
+                    start = e.Start.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    end = e.End.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    color = e.Color,
+                    type = e.IsBreak ? 1 : 0
+                }))),
+                eventDrop: function(info) {
+                    if (!checkScheduleConflicts(info.event)) {
+                        info.revert();
+                    }
+                },
+                eventResize: function(info) {
+                    if (!checkScheduleConflicts(info.event)) {
+                        info.revert();
+                    }
+                },
+                eventClick: function(info) {
+                        info.event.remove();
+                },
+                select: function(info) {
+                    var startTime = info.start;
+                    var endTime = info.end;
+
+                    var overlappingEvents = calendar.getEvents().filter(function(event) {
+                        return (
+                            (startTime < event.end && endTime > event.start)
+                        );
+                    });
+
+                    if (overlappingEvents.length > 0) {
+                        alert('Это время уже занято. Пожалуйста, выберите другое время.');
+                        return;
+                    }
+
+                    var title = currentEventType == 0 ? 'Прием пациентов' : 'Перерыв';
+                    var color = currentEventType == 0 ? '#28a745' : '#dc3545';
+
+                    calendar.addEvent({
+                        title: title,
+                        start: startTime,
+                        end: endTime,
+                        color: color,
+                        type: currentEventType,
+                        durationEditable: true
+                    });
+                },
+                eventDidMount: function(info) {
+                    var duration = (info.event.end - info.event.start) / 60000;
+                    $(info.el).attr('title', 'Длительность: ' + duration + ' мин');
+                }
+            });
+    
+            calendar.render();
+    
+            function checkScheduleConflicts(event) {
+                var overlappingEvents = calendar.getEvents().filter(function(e) {
+                    return (
+                        e.id !== event.id &&
+                        ((event.start < e.end && event.end > e.start) ||
+                        (e.start < event.end && e.end > event.start))
+                    );
+                });
+        
+                if (overlappingEvents.length > 0) {
+                    alert('Обнаружен конфликт времени с другими событиями!');
+                    return false;
+                }
+        
+                var dayEnd = new Date(event.start);
+                dayEnd.setHours(20, 0, 0, 0);
+        
+                if (event.end > dayEnd) {
+                    alert('Событие выходит за границы рабочего времени!');
+                    return false;
+                }
+        
+                return true;
+            }
+    
+            $('#saveForm').submit(function () {
+                var events = calendar.getEvents().map(function (event) {
+                    return {
+                        Id: event.id,
+                        DoctorId: @Model.ViewModel.DoctorId,
+                        Title: event.title,
+                        Start: event.start,
+                        End: event.end,
+                        Color: event.backgroundColor,
+                        IsBreak: event.extendedProps.type == 1 // Перерыв
+                    };
+                });
+
+                $('#eventsData').val(JSON.stringify(events));
+            });
+    
+            $('#addDefaultSchedule').click(function() {
+                // Добавляем стандартное расписание (9:00-17:00)
+                var now = new Date();
+                var startDate = new Date(now.setHours(9, 0, 0, 0));
+                var endDate = new Date(now.setHours(13, 0, 0, 0));
+        
+                calendar.addEvent({
+                    title: 'Прием пациентов',
+                    start: startDate,
+                    end: endDate,
+                    color: '#28a745',
+                    type: 0
+                });
+                var now = new Date();
+                var startDate = new Date(now.setHours(13, 0, 0, 0));
+                var endDate = new Date(now.setHours(14, 0, 0, 0));
+        
+                calendar.addEvent({
+                    title: 'Перерыв',
+                    start: startDate,
+                    end: endDate,
+                    color: '#dc3545',
+                    type: 1
+                });
+                var now = new Date();
+                var startDate = new Date(now.setHours(14, 0, 0, 0));
+                var endDate = new Date(now.setHours(18, 0, 0, 0));
+        
+                calendar.addEvent({
+                    title: 'Прием пациентов',
+                    start: startDate,
+                    end: endDate,
+                    color: '#28a745',
+                    type: 0
+                });
+            });
+        });
+    </script>
+}

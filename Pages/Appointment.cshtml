@@ -1,0 +1,386 @@
+﻿@page "{userId:int?}"
+@model VeterinaryClinic.Pages.AppointmentModel
+@{
+    ViewData["Title"] = "Записи на прием";
+}
+
+<head>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+            --status-pending: #FFC107;
+            --status-confirmed: #28A745;
+            --status-cancelled: #DC3545;
+            --status-completed: #17A2B8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .appointments-header {
+            text-align: center;
+            margin: 60px 0 40px;
+            color: var(--dark-text);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+            .appointments-header::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 20px auto;
+                border-radius: 2px;
+            }
+
+        .appointments-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .appointments-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 15px;
+            margin: 30px 0;
+        }
+
+            .appointments-table thead th {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 15px 20px;
+                text-align: left;
+                font-weight: 600;
+                border: none;
+            }
+
+                .appointments-table thead th:first-child {
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .appointments-table thead th:last-child {
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+            .appointments-table tbody tr {
+                background-color: white;
+                box-shadow: var(--shadow);
+                transition: var(--transition);
+                border-radius: var(--border-radius);
+            }
+
+                .appointments-table tbody tr:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+                }
+
+            .appointments-table tbody td {
+                padding: 20px;
+                border: none;
+                vertical-align: middle;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+
+                .appointments-table tbody td:first-child {
+                    border-left: 1px solid rgba(0,0,0,0.05);
+                    border-top-left-radius: var(--border-radius);
+                    border-bottom-left-radius: var(--border-radius);
+                }
+
+                .appointments-table tbody td:last-child {
+                    border-right: 1px solid rgba(0,0,0,0.05);
+                    border-top-right-radius: var(--border-radius);
+                    border-bottom-right-radius: var(--border-radius);
+                }
+
+        .appointment-client, .appointment-doctor {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 1.1rem;
+        }
+
+        .appointment-date {
+            display: flex;
+            align-items: center;
+            color: var(--dark-text);
+            font-weight: 500;
+        }
+
+            .appointment-date::before {
+                content: '📅';
+                margin-right: 8px;
+                font-size: 0.9rem;
+            }
+
+        .appointment-time {
+            display: flex;
+            align-items: center;
+            color: var(--dark-text);
+        }
+
+            .appointment-time::before {
+                content: '⏰';
+                margin-right: 8px;
+                font-size: 0.9rem;
+            }
+
+        .appointment-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-pending {
+            background-color: rgba(var(--status-pending), 0.1);
+            color: darken(var(--status-pending), 20%);
+        }
+
+        .status-confirmed {
+            background-color: rgba(var(--status-confirmed), 0.1);
+            color: darken(var(--status-confirmed), 20%);
+        }
+
+        .status-cancelled {
+            background-color: rgba(var(--status-cancelled), 0.1);
+            color: darken(var(--status-cancelled), 20%);
+        }
+
+        .status-completed {
+            background-color: rgba(var(--status-completed), 0.1);
+            color: darken(var(--status-completed), 20%);
+        }
+
+        .no-appointments {
+            text-align: center;
+            color: var(--light-text);
+            padding: 30px;
+            font-size: 1.1rem;
+        }
+
+        /* Анимации */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Адаптивность */
+        @@media (max-width: 768px) {
+            .appointments-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+                .appointments-table thead {
+                    display: none;
+                }
+
+                .appointments-table tbody tr {
+                    display: flex;
+                    flex-direction: column;
+                    margin-bottom: 20px;
+                }
+
+                .appointments-table tbody td {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 12px 15px;
+                    border-radius: 0;
+                }
+
+                    .appointments-table tbody td:first-child {
+                        border-top-left-radius: var(--border-radius);
+                        border-top-right-radius: var(--border-radius);
+                    }
+
+                    .appointments-table tbody td:last-child {
+                        border-bottom-left-radius: var(--border-radius);
+                        border-bottom-right-radius: var(--border-radius);
+                    }
+
+                    .appointments-table tbody td::before {
+                        content: attr(data-label);
+                        font-weight: 600;
+                        margin-right: 10px;
+                        color: var(--primary-color);
+                    }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-edit {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+            .btn-edit:hover {
+                background-color: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(78, 140, 255, 0.3);
+            }
+
+        .btn-delete {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+            .btn-delete:hover {
+                background-color: #e05555;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+            }
+        
+    </style>
+</head>
+
+<div class="appointments-container">
+    <h1 class="appointments-header">Записи на прием</h1>
+
+    <table class="appointments-table">
+        <thead>
+            <tr>
+                <th>Клиент</th>
+                <th>Ветеринар</th>
+                <th>Дата</th>
+                <th>Время</th>
+                <th>Статус</th>
+                @if (User.IsInRole("Админ"))
+                {
+                    <th>Действия</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Appointments != null && Model.Appointments.Any())
+            {
+                foreach (var appointment in Model.Appointments)
+                {
+                    <tr class="animate-fade" style="animation-delay: @(Model.Appointments.ToList().IndexOf(appointment) * 0.05)s">
+                        <td data-label="Клиент">
+                            <div class="appointment-client">@appointment.ClientName</div>
+                        </td>
+                        <td data-label="Ветеринар">
+                            <div class="appointment-doctor">@appointment.DoctorName</div>
+                        </td>
+                        <td data-label="Дата">
+                            <span class="appointment-date">@appointment.Date.ToShortDateString()</span>
+                        </td>
+                        <td data-label="Время">
+                            <span class="appointment-time">@appointment.Time</span>
+                        </td>
+                        <td data-label="Статус">
+                            @{
+                                var statusClass = "";
+                                switch (appointment.Status.ToLower())
+                                {
+                                    case "pending":
+                                    case "ожидается":
+                                        statusClass = "status-pending";
+                                        break;
+                                    case "confirmed":
+                                    case "подтвержден":
+                                        statusClass = "status-confirmed";
+                                        break;
+                                    case "cancelled":
+                                    case "отменен":
+                                        statusClass = "status-cancelled";
+                                        break;
+                                    case "completed":
+                                    case "завершен":
+                                        statusClass = "status-completed";
+                                        break;
+                                    default:
+                                        statusClass = "";
+                                        break;
+                                }
+                            }
+                            <span class="appointment-status @statusClass">@appointment.Status</span>
+                        </td>
+                        @if (User.IsInRole("Админ"))
+                        {
+                            <td>
+                                <div class="action-buttons">
+                                    <a asp-page="/CreateAppointment" asp-route-id="@appointment.AppointmentId" class="btn btn-edit">Редактировать</a>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@appointment.AppointmentId" class="d-inline">
+                                        <button type="submit" class="btn btn-delete"
+                                                onclick="return confirm('Вы уверены, что хотите удалить эту запись?')">
+                                            Удалить
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr class="animate-fade">
+                    <td colspan="@@(User.IsInRole("Админ") ? 6 : 5" class="no-appointments">Нет записей на прием.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.animate-fade');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.05}s`;
+            });
+        });
+    </script>
+}
+
+
