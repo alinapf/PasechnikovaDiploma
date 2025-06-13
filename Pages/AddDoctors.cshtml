@@ -179,7 +179,6 @@
             <span asp-validation-for="Doctor.Specialization" class="text-danger"></span>
         </div>
 
-
         <div class="form-group">
             <label asp-for="Doctor.Bio">Биография</label>
             <textarea asp-for="Doctor.Bio" class="form-control"></textarea>
@@ -187,7 +186,13 @@
         </div>
 
         <div class="form-group">
-            <label asp-for="PhotoFile">Фото врача</label>
+            <label>Фото врача</label>
+            @if (!string.IsNullOrEmpty(Model.Doctor.PhotoUrl))
+            {
+                <div class="mb-2">
+                    <img src="@Model.Doctor.PhotoUrl" alt="Фото врача" style="max-width: 200px; max-height: 200px;" />
+                </div>
+            }
             <input type="file" asp-for="PhotoFile" class="form-control" accept="image/*" />
             <span asp-validation-for="PhotoFile" class="text-danger"></span>
         </div>
@@ -196,6 +201,7 @@
         <a asp-page="./Doctors" class="btn btn-secondary">Отмена</a>
     </form>
 </div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

@@ -1,7 +1,8 @@
-using VeterinaryClinic.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using VeterinaryClinic.Models;
 
 namespace VeterinaryClinic.Pages
 {
@@ -18,11 +19,11 @@ namespace VeterinaryClinic.Pages
 
         public async Task OnGetAsync()
         {
-            // Сначала получаем основные данные
+            // Get doctor data with schedules and reviews
             var doctorsData = await _context.Doctors
                 .Include(d => d.User)
                 .Include(d => d.Schedules)
-                .Select(d => new 
+                .Select(d => new
                 {
                     Doctor = d,
                     Schedules = d.Schedules,
@@ -41,7 +42,7 @@ namespace VeterinaryClinic.Pages
                 })
                 .ToListAsync();
 
-            // Затем преобразуем в конечную модель
+            // Convert to view model
             Doctors = doctorsData.Select(data => new DoctorViewModel
             {
                 DoctorId = data.Doctor.DoctorId,
@@ -50,91 +51,117 @@ namespace VeterinaryClinic.Pages
                 Rating = data.Doctor.Rating,
                 PhotoUrl = data.Doctor.PhotoUrl,
                 Bio = data.Doctor.Bio,
-                Schedule = FormatSchedule(data.Schedules),
+                Schedule = FormatWeeklySchedule(data.Schedules),
                 Reviews = data.Reviews,
                 AvailableTimes = GetAvailableTimes(data.Schedules, DateTime.Today, data.Doctor.DoctorId)
             }).ToList();
         }
 
-        private static string FormatSchedule(List<DoctorSchedule> schedules)
+        private static string FormatWeeklySchedule(List<DoctorSchedule> schedules)
         {
             if (schedules == null || !schedules.Any())
                 return "График не указан";
 
-            var days = new Dictionary<int, string>
-        {
-            {1, "Пн"}, {2, "Вт"}, {3, "Ср"}, {4, "Чт"}, {5, "Пт"}, {6, "Сб"}, {7, "Вс"}
-        };
+            var dayNames = new Dictionary<DayOfWeek, string>
+    {
+        {DayOfWeek.Monday, "Пн"},
+        {DayOfWeek.Tuesday, "Вт"},
+        {DayOfWeek.Wednesday, "Ср"},
+        {DayOfWeek.Thursday, "Чт"},
+        {DayOfWeek.Friday, "Пт"},
+        {DayOfWeek.Saturday, "Сб"},
+        {DayOfWeek.Sunday, "Вс"}
+    };
 
-            /*var grouped = schedules
-                .Where(s => s.IsWorkingDay == true) // Явное сравнение с true
-                .GroupBy(s => new { s.StartTime, s.EndTime })
-                .Select(g => new
-                {
-                    Time = $"{g.Key.StartTime:hh\\:mm}-{g.Key.EndTime:hh\\:mm}",
-                    Days = g.Select(x => x.DayOfWeek).OrderBy(x => x).ToList()
-                })
-                .OrderBy(x => x.Days.FirstOrDefault()) // Используем FirstOrDefault для безопасности
-                .ToList();*/
+            // Получаем даты текущей недели (с понедельника по воскресенье)
+            var today = DateTime.Today;
+            var startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+            var weekDates = Enumerable.Range(0, 7)
+                .Select(offset => startOfWeek.AddDays(offset))
+                .ToList();
 
             var result = new List<string>();
-            /*foreach (var group in grouped)
-            {
-                var dayRanges = new List<string>();
-                int currentStart = (int)group.Days[0];
-                var prev = currentStart;
 
-                for (int i = 1; i < group.Days.Count; i++)
+            foreach (var date in weekDates)
+            {
+                var daySchedule = schedules.FirstOrDefault(s => s.WorkDate.Date == date.Date);
+                var dayName = dayNames[date.DayOfWeek];
+
+                if (daySchedule == null)
                 {
-                    if (group.Days[i] != prev + 1)
-                    {
-                        dayRanges.Add(currentStart == prev
-                            ? days[currentStart]
-                            : $"{days[currentStart]}-{days[prev]}");
-                        currentStart = (int)group.Days[i];
-                    }
-                    prev = (int)group.Days[i];
+                    result.Add($"{dayName} - выходной");
+                    continue;
                 }
 
-                dayRanges.Add(currentStart == prev
-                    ? days[currentStart]
-                    : $"{days[currentStart]}-{days[prev]}");
+                try
+                {
+                    var workHours = JsonConvert.DeserializeObject<List<WorkHour>>(daySchedule.WorkHours);
+                    var workingSlots = workHours
+                        .Where(wh => !wh.IsBreak)
+                        .OrderBy(wh => TimeSpan.Parse(wh.Start))
+                        .ToList();
 
-                result.Add($"{string.Join(",", dayRanges)} {group.Time}");
-            }*/
+                    if (!workingSlots.Any())
+                    {
+                        result.Add($"{dayName} - выходной");
+                        continue;
+                    }
 
-            return string.Join("; ", result);
+                    var timeSlots = workingSlots
+                        .Select(wh => $"{wh.Start}-{wh.End}")
+                        .ToList();
+
+                    result.Add($"{dayName} - {string.Join(", ", timeSlots)}");
+                }
+                catch
+                {
+                    result.Add($"{dayName} - ошибка расписания");
+                }
+            }
+
+            return string.Join("\n", result);
         }
 
         private List<string> GetAvailableTimes(List<DoctorSchedule> schedules, DateTime date, int doctorId)
         {
             var availableTimes = new List<string>();
 
-            var dayOfWeek = (int)date.DayOfWeek; // Получаем день недели (0 = Вс, 1 = Пн, ..., 6 = Сб)
+            var daySchedule = schedules.FirstOrDefault(s => s.WorkDate.Date == date.Date);
+            if (daySchedule == null)
+                return availableTimes;
 
-            /*var doctorSchedules = schedules
-                .Where(s => s.DoctorId == doctorId &&
-                           s.DayOfWeek.HasValue &&
-                           s.DayOfWeek.Value == dayOfWeek &&
-                           s.IsWorkingDay.HasValue &&
-                           s.IsWorkingDay.Value)
-                .ToList();*/
-
-            /*foreach (var schedule in doctorSchedules)
+            try
             {
-                for (var time = schedule.StartTime; time < schedule.EndTime; time = time.Add(TimeSpan.FromMinutes(30))) // Интервал в 30 минут
+                var workHours = JsonConvert.DeserializeObject<List<WorkHour>>(daySchedule.WorkHours);
+                var workingSlots = workHours.Where(wh => !wh.IsBreak).ToList();
+
+                foreach (var slot in workingSlots)
                 {
-                    var isBooked = _context.Appointments
-                        .Any(a => a.Date.Date == date.Date && a.Time == time && a.DoctorId == doctorId);
-                    if (!isBooked)
+                    var start = TimeSpan.Parse(slot.Start);
+                    var end = TimeSpan.Parse(slot.End);
+
+                    for (var time = start; time < end; time = time.Add(TimeSpan.FromMinutes(30)))
                     {
-                        availableTimes.Add(time.ToString(@"hh\:mm"));
+                        var isBooked = _context.Appointments
+                            .Any(a => a.Date.Date == date.Date &&
+                                    a.Time == time &&
+                                    a.DoctorId == doctorId);
+
+                        if (!isBooked)
+                        {
+                            availableTimes.Add(time.ToString(@"hh\:mm"));
+                        }
                     }
                 }
-            }*/
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing work hours: {ex.Message}");
+            }
 
             return availableTimes;
         }
+
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
             var doctor = await _context.Doctors.FindAsync(id);
@@ -148,6 +175,14 @@ namespace VeterinaryClinic.Pages
 
             return RedirectToPage();
         }
+    }
+
+    // Helper class for JSON deserialization
+    public class WorkHour
+    {
+        public string Start { get; set; }
+        public string End { get; set; }
+        public bool IsBreak { get; set; }
     }
 
 }

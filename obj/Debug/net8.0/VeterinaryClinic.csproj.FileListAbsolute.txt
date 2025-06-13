@@ -521,7 +521,9 @@ C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\D
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\staticwebassets.build.json.cache
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\staticwebassets.development.json
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\Veterina.5F9E35BE.Up2Date
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\VeterinaryClinic.genruntimeconfig.cache
 C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\ref\VeterinaryClinic.dll
+C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\VeterinaryClinic.sourcelink.json
+C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\bin\Debug\net8.0\Newtonsoft.Json.dll
+C:\Users\cova\Downloads\VeterinaryClinic\VeterinaryClinic\VeterinaryClinic\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
