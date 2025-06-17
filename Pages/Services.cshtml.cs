@@ -3,16 +3,19 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 using VeterinaryClinic.Models;
+using VeterinaryClinic.Services;
 
 namespace VeterinaryClinic.Pages
 {
     public class ServiceModel : PageModel
     {
         private readonly VeterinaryClinicContext _context;
+        private readonly LogService _logService;
 
-        public ServiceModel(VeterinaryClinicContext context)
+        public ServiceModel(VeterinaryClinicContext context, LogService logService)
         {
             _context = context;
+            _logService = logService;
         }
 
         public IList<Service> Services { get; set; } = new List<Service>();
@@ -38,8 +41,16 @@ namespace VeterinaryClinic.Pages
                 return NotFound();
             }
 
+            // Получаем ID текущего пользователя (кто выполняет удаление)
+            var currentUserId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+
             _context.Services.Remove(service);
             await _context.SaveChangesAsync();
+
+            // Логируем действие
+            await _logService.LogAction(
+                currentUserId,
+                $"Удалена услуга: {service.Name} (ID: {service.ServiceId}, Цена: {service.Price} руб.)");
 
             return RedirectToPage();
         }

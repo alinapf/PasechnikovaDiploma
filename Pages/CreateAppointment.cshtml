@@ -1,4 +1,4 @@
-﻿@page
+﻿@page "{id:int?}"
 @model VeterinaryClinic.Pages.CreateAppointmentModel
 @{
     ViewData["Title"] = Model.IsEditMode ? "Редактирование записи" : "Запись на прием";
@@ -291,60 +291,88 @@
     </form>
 </div>
 
+
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+            // Если врач уже выбран (из параметра), убедимся что он отображается в select
+            var selectedDoctorId = '@Model.SelectedDoctorId';
+            if (selectedDoctorId && selectedDoctorId !== '0') {
+                document.getElementById('doctorSelect').value = selectedDoctorId;
+                
+                // Дополнительно: можно вызвать загрузку услуг для этого врача
+                if (typeof loadServices === 'function') {
+                    loadServices(selectedDoctorId);
+                }
+            }
+        });
     $(function() {
-        // Update times when doctor or date changes
-        $(document).ready(function() {
-            $('#datepicker').change(function() {
-                var selectedDate = $(this).val();
-                var doctorId = $('#doctorSelect').val(); // Предполагаем, что у вас есть выбор врача
+        // Функция для загрузки доступного времени
+        function loadAvailableTimes() {
+            var selectedDate = $('#datepicker').val();
+            var doctorId = $('#doctorSelect').val();
 
-                if (doctorId && selectedDate) {
-                    $.get('/CreateAppointment?handler=AvailableTimes', { date: selectedDate, doctorId: doctorId }, function(data) {
-                        var timeSelect = $('#timeSelect');
-                        timeSelect.empty(); // Очистить предыдущие значения
-
+            if (doctorId && selectedDate) {
+                $.get('/CreateAppointment?handler=AvailableTimes', { 
+                    date: selectedDate, 
+                    doctorId: doctorId 
+                }, function(data) {
+                    var timeSelect = $('#timeSelect');
+                    timeSelect.empty().append('<option value="">Выберите время</option>');
+                    
+                    if (data && data.length > 0) {
                         $.each(data, function(i, time) {
                             timeSelect.append($('<option>').val(time).text(time));
                         });
-                    }).fail(function() {
-                        alert('Ошибка при загрузке доступных времён.');
-                    });
-                }
-            });
-        });
+                    } else {
+                        timeSelect.append('<option value="">Нет доступного времени</option>');
+                    }
+                }).fail(function() {
+                    alert('Ошибка при загрузке доступных времён.');
+                });
+            }
+        }
 
-        // Update services when doctor changes
-        $(document).ready(function() {
-            $('#doctorSelect').change(function() {
-                var doctorId = $(this).val();
-                var serviceSelect = $('#serviceSelect');
-                serviceSelect.empty(); // Очистить предыдущие значения
-                serviceSelect.append($('<option>').val('').text('Выберите услугу')); // Добавить начальное значение
+        // Функция для загрузки услуг
+        function loadServices() {
+            var doctorId = $('#doctorSelect').val();
+            var serviceSelect = $('#serviceSelect');
+            
+            serviceSelect.empty().append('<option value="">Выберите услугу</option>');
 
-                if (doctorId) {
-                    $.get('/CreateAppointment?handler=Services', { doctorId: doctorId }, function(data) {
+            if (doctorId) {
+                $.get('/CreateAppointment?handler=ServicesForDoctor', { 
+                    doctorId: doctorId 
+                }, function(data) {
+                    if (data && data.length > 0) {
                         $.each(data, function(i, service) {
-                            serviceSelect.append($('<option>').val(service.serviceId).text(service.name));
+                            serviceSelect.append($('<option>')
+                                .val(service.serviceId)
+                                .text(service.name));
                         });
-                    }).fail(function() {
-                        alert('Ошибка при загрузке услуг.');
-                    });
-                }
-            });
-        });
+                    } else {
+                        serviceSelect.append('<option value="">Нет доступных услуг</option>');
+                    }
+                }).fail(function() {
+                    alert('Ошибка при загрузке услуг.');
+                });
+            }
+        }
 
-        // Show loading indicator on form submit
-        $('form').submit(function() {
-            $('#loading').show();
-            $('#submitBtn').prop('disabled', true);
-        });
+        // Обработчики событий
+        $('#datepicker, #doctorSelect').change(loadAvailableTimes);
+        $('#doctorSelect').change(loadServices);
+
+        // Инициализация при загрузке страницы
+        if ($('#doctorSelect').val()) {
+            loadServices();
+        }
     });
 </script>
+
 
 

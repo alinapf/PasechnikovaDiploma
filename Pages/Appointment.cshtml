@@ -278,12 +278,106 @@
                 transform: translateY(-2px);
                 box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
             }
-        
+
+        .search-container {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            padding: 12px 20px;
+            width: 100%;
+            min-width: 300px;
+            max-width: 350px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+            .search-input:focus {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+            }
+
+        .date-picker {
+            padding: 12px 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            min-width: 300px;
+            max-width: 350px;
+        }
+
+            .date-picker:focus {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+            }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .search-btn {
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+            .search-btn:hover {
+                background-color: #3a7be0;
+                transform: translateY(-2px);
+            }
+
+        .reset-btn {
+            padding: 12px 25px;
+            background-color: var(--light-text);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+            .reset-btn:hover {
+                background-color: #5a6268;
+                transform: translateY(-2px);
+            }
     </style>
 </head>
 
 <div class="appointments-container">
     <h1 class="appointments-header">Записи на прием</h1>
+
+    <form method="get" class="search-container">
+        <input type="text" id="searchInput" name="searchString" class="search-input"
+               placeholder="Поиск по клиенту или ветеринару..." value="@Model.SearchString" />
+
+        <input type="date" id="dateFilter" name="dateFilter" class="date-picker"
+               value="@(Model.DateFilter.HasValue? Model.DateFilter.Value.ToString("yyyy-MM-dd") : "")" />
+
+        
+    </form>
 
     <table class="appointments-table">
         <thead>
@@ -299,12 +393,16 @@
                 }
             </tr>
         </thead>
-        <tbody>
+        <tbody id="appointmentsTableBody">
             @if (Model.Appointments != null && Model.Appointments.Any())
             {
                 foreach (var appointment in Model.Appointments)
                 {
-                    <tr class="animate-fade" style="animation-delay: @(Model.Appointments.ToList().IndexOf(appointment) * 0.05)s">
+                    <tr class="animate-fade"
+                        style="animation-delay: @(Model.Appointments.ToList().IndexOf(appointment) * 0.05)s"
+                        data-client="@appointment.ClientName.ToLower()"
+                        data-doctor="@appointment.DoctorName.ToLower()"
+                        data-date="@appointment.Date.ToString("yyyy-MM-dd")">
                         <td data-label="Клиент">
                             <div class="appointment-client">@appointment.ClientName</div>
                         </td>
@@ -365,12 +463,13 @@
             else
             {
                 <tr class="animate-fade">
-                    <td colspan="@@(User.IsInRole("Админ") ? 6 : 5" class="no-appointments">Нет записей на прием.</td>
+                    <td colspan="@(User.IsInRole("Админ") ? 6 : 5)" class="no-appointments">Нет записей на прием.</td>
                 </tr>
             }
         </tbody>
     </table>
 </div>
+
 
 @section Scripts {
     <script>
@@ -379,6 +478,33 @@
             animatedElements.forEach((el, index) => {
                 el.style.animationDelay = `${index * 0.05}s`;
             });
+
+            // Клиентский поиск (опционально)
+            const searchInput = document.getElementById('searchInput');
+            const dateFilter = document.getElementById('dateFilter');
+            const appointmentsTableBody = document.getElementById('appointmentsTableBody');
+            const appointmentRows = Array.from(appointmentsTableBody.getElementsByTagName('tr'));
+
+            function filterAppointments() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const dateValue = dateFilter.value;
+
+                appointmentRows.forEach(row => {
+                    if (row.classList.contains('no-appointments')) return;
+
+                    const client = row.getAttribute('data-client');
+                    const doctor = row.getAttribute('data-doctor');
+                    const date = row.getAttribute('data-date');
+
+                    const matchesSearch = client.includes(searchTerm) || doctor.includes(searchTerm);
+                    const matchesDate = !dateValue || date === dateValue;
+
+                    row.style.display = matchesSearch && matchesDate ? '' : 'none';
+                });
+            }
+
+            searchInput.addEventListener('input', filterAppointments);
+            dateFilter.addEventListener('change', filterAppointments);
         });
     </script>
 }

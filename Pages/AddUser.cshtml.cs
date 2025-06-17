@@ -1,18 +1,24 @@
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 using VeterinaryClinic.Models;
+using VeterinaryClinic.Services;
 
 namespace VeterinaryClinic.Pages
 {
     public class AddUserModel : PageModel
     {
         private readonly VeterinaryClinicContext _context;
+        private readonly LogService _logService;
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-        public AddUserModel(VeterinaryClinicContext context)
+        public AddUserModel(VeterinaryClinicContext context, LogService logService, IPasswordHasher<User> passwordHasher)
         {
             _context = context;
+            _logService = logService;
+            _passwordHasher = passwordHasher;
         }
 
         [BindProperty]
@@ -20,67 +26,141 @@ namespace VeterinaryClinic.Pages
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
-            if (id == null)
+            try
             {
-                // ����� �������� ������ ������������
+                User = await _context.Users.FindAsync(id);
+
+                if (id == null)
+                {
+                    await _logService.LogAction(User.UserId,
+                        "Открыта страница создания нового пользователя");
+                    return Page();
+                }
+                await _logService.LogAction(User.UserId,
+                    $"Открыта страница редактирования пользователя ID: {id}");
+                // Режим редактирования существующего пользователя
+
+                if (User == null)
+                {
+                    await _logService.LogAction(User.UserId,
+                        $"Попытка редактирования несуществующего пользователя ID: {id}");
+                    return NotFound();
+                }
+                var logMessage = $"Редактирование пользователя: " +
+                                 $"Username: {User.Username}, " +
+                                 $"Email: {User.Email}, " +
+                                 $"Role: {User.Role}";
+
+                await _logService.LogAction(User.UserId, logMessage);
+
                 return Page();
             }
-
-            // ����� �������������� ������������� ������������
-            User = await _context.Users.FindAsync(id);
-
-            if (User == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                await _logService.LogAction(User.UserId,
+                    $"Ошибка при открытии страницы пользователя: {ex.Message}");
+                throw;
             }
-
-            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (!ModelState.IsValid)
-            {
-                return Page();
-            }
 
-            if (User.UserId == 0)
-            {
-                // ���������� ������ ������������
-                _context.Users.Add(User);
-            }
-            else
-            {
-                // ���������� ������������� ������������
-                var userToUpdate = await _context.Users.FindAsync(User.UserId);
-
-                if (userToUpdate == null)
-                {
-                    return NotFound();
-                }
-
-                userToUpdate.Username = User.Username;
-                userToUpdate.Email = User.Email;
-                userToUpdate.Role = User.Role;
-
-                // ��������� ������ ������ ���� �� ��� ������
-                if (!string.IsNullOrEmpty(User.Password))
-                {
-                    userToUpdate.Password = User.Password;
-                }
-            }
+            
 
             try
             {
-                await _context.SaveChangesAsync();
+                if (User.UserId == 0)
+                {
+                    // Хеширование пароля перед сохранением
+                    if (!string.IsNullOrEmpty(User.Password))
+                    {
+                        User.Password = _passwordHasher.HashPassword(User, User.Password);
+                    }
+
+                    _context.Users.Add(User);
+                    await _context.SaveChangesAsync();
+
+                    var logMessage = $"Создан новый пользователь: " +
+                                   $"ID: {User.UserId}, " +
+                                   $"Username: {User.Username}, " +
+                                   $"Email: {User.Email}, " +
+                                   $"Role: {User.Role}";
+
+                    await _logService.LogAction(User.UserId, logMessage);
+                }
+                else
+                {
+                    var userToUpdate = await _context.Users.FindAsync(User.UserId);
+
+                    if (userToUpdate == null)
+                    {
+                        await _logService.LogAction(User.UserId,
+                            $"Попытка обновления несуществующего пользователя ID: {User.UserId}");
+                        return NotFound();
+                    }
+
+                    var changes = new List<string>();
+
+                    // Логируем изменения полей
+                    if (userToUpdate.Username != User.Username)
+                    {
+                        changes.Add($"Username: {userToUpdate.Username} → {User.Username}");
+                        userToUpdate.Username = User.Username;
+                    }
+
+                    if (userToUpdate.Email != User.Email)
+                    {
+                        changes.Add($"Email: {userToUpdate.Email} → {User.Email}");
+                        userToUpdate.Email = User.Email;
+                    }
+
+                    if (userToUpdate.Role != User.Role)
+                    {
+                        changes.Add($"Role: {userToUpdate.Role} → {User.Role}");
+                        userToUpdate.Role = User.Role;
+                    }
+
+                    // Обновляем пароль только если он был указан
+                    if (!string.IsNullOrEmpty(User.Password))
+                    {
+                        changes.Add("Пароль изменен");
+                        userToUpdate.Password = _passwordHasher.HashPassword(userToUpdate, User.Password);
+                    }
+
+                    if (changes.Any())
+                    {
+                        await _context.SaveChangesAsync();
+
+                        var logMessage = $"Обновлен пользователь ID: {User.UserId}. " +
+                                       $"Изменения: {string.Join(", ", changes)}";
+
+                        await _logService.LogAction(User.UserId, logMessage);
+                    }
+                    else
+                    {
+                        await _logService.LogAction(User.UserId,
+                            $"Попытка обновления пользователя ID: {User.UserId} без изменений");
+                    }
+                }
+
+                return RedirectToPage("./Users");
             }
             catch (DbUpdateException ex)
             {
-                ModelState.AddModelError("", "�� ������� ��������� ���������. " + ex.Message);
+                await _logService.LogAction(User.UserId,
+                    $"Ошибка при сохранении пользователя: {ex.Message}");
+
+                ModelState.AddModelError("", "Не удалось сохранить изменения. " +
+                    (ex.InnerException?.Message ?? ex.Message));
                 return Page();
             }
-
-            return RedirectToPage("./Users");
+            catch (Exception ex)
+            {
+                await _logService.LogAction(User.UserId,
+                    $"Неожиданная ошибка при работе с пользователем: {ex.Message}");
+                throw;
+            }
         }
     }
 }

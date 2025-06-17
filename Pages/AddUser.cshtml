@@ -4,46 +4,279 @@
     ViewData["Title"] = Model.User.UserId == 0 ? "Добавить пользователя" : "Редактировать пользователя";
 }
 
-<h2>@ViewData["Title"]</h2>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>@ViewData["Title"]</title>
+    <style>
+        :root {
+            --primary-color: #4e8cff;
+            --secondary-color: #ff5e5f;
+            --accent-color: #6c5ce7;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #636e72;
+            --white: #ffffff;
+            --shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
 
-<form method="post">
-    <input type="hidden" asp-for="User.UserId" />
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #bad2ff 0%, rgba(248, 249, 250, 0.7) 100%);
+            color: var(--dark-text);
+            line-height: 1.6;
+            padding-top: 40px;
+        }
 
-    <div class="form-group">
-        <label asp-for="User.Username"></label>
-        <input asp-for="User.Username" class="form-control" />
-        <span asp-validation-for="User.Username" class="text-danger"></span>
-    </div>
+        .user-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
 
-    <div class="form-group">
-        <label asp-for="User.Email"></label>
-        <input asp-for="User.Email" class="form-control" />
-        <span asp-validation-for="User.Email" class="text-danger"></span>
-    </div>
+        h2 {
+            text-align: center;
+            margin: 0 0 40px;
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+            animation: fadeInDown 0.8s ease-out;
+        }
 
-    @if (Model.User.UserId == 0)
-    {
+            h2::after {
+                content: '';
+                display: block;
+                width: 80px;
+                height: 4px;
+                background: var(--secondary-color);
+                margin: 15px auto;
+                border-radius: 2px;
+                animation: scaleIn 0.8s ease-out 0.3s both;
+            }
+
+        .user-form {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.3s forwards;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-text);
+            transition: var(--transition);
+        }
+
+        .form-control {
+            width: 100%;
+            height: 50px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            background-color: var(--white);
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(78, 140, 255, 0.2);
+                outline: none;
+            }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23636e72' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+        }
+
+        .btn {
+            display: inline-block;
+            width: auto;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+            .btn-primary:hover {
+                background: #3a7be0;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(58, 123, 224, 0.3);
+            }
+
+        .btn-secondary {
+            background: var(--light-text);
+            color: var(--white);
+        }
+
+            .btn-secondary:hover {
+                background: #555;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(85, 85, 85, 0.3);
+            }
+
+        .text-danger {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: var(--white);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        /* Animations */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes scaleIn {
+            from {
+                transform: scaleX(0);
+            }
+
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .user-container {
+                padding: 0 15px;
+            }
+
+            h2 {
+                font-size: 2rem;
+                margin-bottom: 30px;
+            }
+
+            .user-form {
+                padding: 20px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+
+<div class="user-container">
+    <h2>@ViewData["Title"]</h2>
+
+    <form method="post" class="user-form">
+        <input type="hidden" asp-for="User.UserId" />
+
         <div class="form-group">
-            <label asp-for="User.Password"></label>
-            <input asp-for="User.Password" type="password" class="form-control" />
-            <span asp-validation-for="User.Password" class="text-danger"></span>
+            <label asp-for="User.Username"></label>
+            <input asp-for="User.Username" class="form-control" />
+            <span asp-validation-for="User.Username" class="text-danger"></span>
         </div>
-    }
 
-    <div class="form-group">
-        <label asp-for="User.Role"></label>
-        <select asp-for="User.Role" class="form-control">
-            <option value="Client">Клиент</option>
-            <option value="Doctor">Врач</option>
-            <option value="Admin">Админ</option>
-        </select>
-        <span asp-validation-for="User.Role" class="text-danger"></span>
-    </div>
+        <div class="form-group">
+            <label asp-for="User.Email"></label>
+            <input asp-for="User.Email" class="form-control" />
+            <span asp-validation-for="User.Email" class="text-danger"></span>
+        </div>
 
-    <button type="submit" class="btn btn-primary">Сохранить</button>
-    <a asp-page="./Users" class="btn btn-secondary">Отмена</a>
-</form>
+        @if (Model.User.UserId == 0)
+        {
+            <div class="form-group">
+                <label asp-for="User.Password"></label>
+                <input asp-for="User.Password" type="password" class="form-control" />
+                <span asp-validation-for="User.Password" class="text-danger"></span>
+            </div>
+        }
+
+        <div class="form-group">
+            <label asp-for="User.Role"></label>
+            <select asp-for="User.Role" class="form-control">
+                <option value="Клиент">Клиент</option>
+                <option value="Админ">Админ</option>
+            </select>
+            <span asp-validation-for="User.Role" class="text-danger"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                Сохранить
+                <span class="loading" id="loading" style="display: none;"></span>
+            </button>
+            <a asp-page="./Users" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            document.getElementById('loading').style.display = 'inline-block';
+        });
+    </script>
 }

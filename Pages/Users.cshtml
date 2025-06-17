@@ -226,11 +226,46 @@
                 width: 100%;
             }
         }
+
+        .search-container {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-input {
+            padding: 12px 20px;
+            width: 100%;
+            max-width: 500px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+            .search-input:focus {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+            }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+            font-size: 1.2rem;
+            display: none;
+        }
     </style>
 </head>
 
 <div class="users-container">
     <h1 class="users-header">Список пользователей</h1>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Поиск по логину или email..." />
+    </div>
 
     <table class="users-table">
         <thead>
@@ -244,10 +279,13 @@
                 }
             </tr>
         </thead>
-        <tbody>
+        <tbody id="usersTableBody">
             @foreach (var item in Model.Users)
             {
-                <tr class="animate-fade" style="animation-delay: @(Model.Users.IndexOf(item) * 0.05)s">
+                <tr class="animate-fade"
+                    style="animation-delay: @(Model.Users.IndexOf(item) * 0.05)s"
+                    data-username="@item.Username.ToLower()"
+                    data-email="@item.Email.ToLower()">
                     <td>
                         <div class="user-username">@item.Username</div>
                     </td>
@@ -276,6 +314,10 @@
         </tbody>
     </table>
 
+    <div id="noResults" class="no-results">
+        Пользователи не найдены
+    </div>
+
     @if (User.IsInRole("Админ"))
     {
         <a class="btn btn-add" asp-page="/AddUser">Добавить нового пользователя</a>
@@ -284,11 +326,34 @@
 
 @section Scripts {
     <script>
-        // Плавное появление элементов
         document.addEventListener('DOMContentLoaded', function() {
-            const animatedElements = document.querySelectorAll('.animate-fade');
-            animatedElements.forEach((el, index) => {
+            const searchInput = document.getElementById('searchInput');
+            const usersTableBody = document.getElementById('usersTableBody');
+            const noResults = document.getElementById('noResults');
+            const userRows = Array.from(usersTableBody.getElementsByTagName('tr'));
+
+            // Плавное появление элементов
+            userRows.forEach((el, index) => {
                 el.style.animationDelay = `${index * 0.05}s`;
+            });
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                let hasResults = false;
+
+                userRows.forEach(row => {
+                    const username = row.getAttribute('data-username');
+                    const email = row.getAttribute('data-email');
+
+                    if (username.includes(searchTerm) || email.includes(searchTerm)) {
+                        row.style.display = '';
+                        hasResults = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                noResults.style.display = hasResults ? 'none' : 'block';
             });
         });
     </script>

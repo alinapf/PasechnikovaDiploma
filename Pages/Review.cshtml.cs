@@ -33,38 +33,78 @@ namespace VeterinaryClinic.Pages
 
         public async Task<IActionResult> OnPostApproveAsync(int id)
         {
-            var review = await _context.Reviews.FindAsync(id);
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var review = await _context.Reviews
+                .Include(r => r.Client)
+                .Include(r => r.Doctor)
+                .FirstOrDefaultAsync(r => r.ReviewId == id);
+
             if (review != null)
             {
                 review.Status = "Одобрено";
                 await _context.SaveChangesAsync();
-                /*await _logService.LogAction(,
-                $"Одобрен отзыв ID: {id} от клиента {review.Client?.Name} " +
-                $"для врача {review.Doctor?.Name}");*/
+
+                await _logService.LogAction(
+                    currentUserId,
+                    $"Одобрен отзыв ID: {review.ReviewId} | " +
+                    $"Клиент: {review.Client?.Name} | " +
+                    $"Врач: {review.Doctor?.Name} | " +
+                    $"Рейтинг: {review.Rating}/5");
             }
+            else
+            {
+                await _logService.LogAction(
+                    currentUserId,
+                    $"Попытка одобрения несуществующего отзыва ID: {id}");
+            }
+
             return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostEditAsync(int id)
         {
-            var review = await _context.Reviews.FindAsync(id);
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var review = await _context.Reviews
+                .Include(r => r.Client)
+                .Include(r => r.Doctor)
+                .FirstOrDefaultAsync(r => r.ReviewId == id);
+
             if (review != null)
             {
                 EditReviewId = review.ReviewId;
                 EditComment = review.Comment;
+
+                await _logService.LogAction(
+                    currentUserId,
+                    $"Начато редактирование отзыва ID: {review.ReviewId} | " +
+                    $"Текущий текст: {review.Comment.Truncate(50)}");
             }
+
             await LoadReviews();
             return Page();
         }
 
         public async Task<IActionResult> OnPostUpdateAsync()
         {
-            var review = await _context.Reviews.FindAsync(EditReviewId);
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var review = await _context.Reviews
+                .Include(r => r.Client)
+                .Include(r => r.Doctor)
+                .FirstOrDefaultAsync(r => r.ReviewId == EditReviewId);
+
             if (review != null)
             {
+                var oldComment = review.Comment;
                 review.Comment = EditComment;
                 await _context.SaveChangesAsync();
+
+                await _logService.LogAction(
+                    currentUserId,
+                    $"Изменен отзыв ID: {review.ReviewId} | " +
+                    $"Старый текст: {oldComment.Truncate(50)} | " +
+                    $"Новый текст: {EditComment.Truncate(50)}");
             }
+
             return RedirectToPage();
         }
 
@@ -92,6 +132,14 @@ namespace VeterinaryClinic.Pages
                     IsEditable = r.ReviewId == EditReviewId
                 })
                 .ToListAsync();
+        }
+    }
+    public static class StringExtensions
+    {
+        public static string Truncate(this string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            return value.Length <= maxLength ? value : value.Substring(0, maxLength) + "...";
         }
     }
 }

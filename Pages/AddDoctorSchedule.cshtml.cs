@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 using System.Globalization;
+using System.Security.Claims;
 using System.Text.Json;
 using VeterinaryClinic.Models;
+using VeterinaryClinic.Services;
 
 namespace VeterinaryClinic.Pages
 {
@@ -14,13 +17,18 @@ namespace VeterinaryClinic.Pages
         public string End { get; set; }
         public bool IsBreak { get; set; } // Добавлено для определения типа интервала
     }
+    [Authorize(Roles = "Админ")]
     public class AddDoctorScheduleModel : PageModel
     {
         private readonly VeterinaryClinicContext _context;
+        private readonly LogService _logService;
 
-        public AddDoctorScheduleModel(VeterinaryClinicContext context)
+        public AddDoctorScheduleModel(
+            VeterinaryClinicContext context,
+            LogService logService)
         {
             _context = context;
+            _logService = logService;
         }
 
         [BindProperty]
@@ -31,48 +39,72 @@ namespace VeterinaryClinic.Pages
 
         public async Task<IActionResult> OnGetAsync(int? doctorId)
         {
-            if (doctorId == null)
-            {
-                return NotFound();
-            }
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-            var doctor = await _context.Doctors.FindAsync(doctorId);
-            if (doctor == null)
+            try
             {
-                return NotFound();
-            }
-
-            var specialSchedules = await _context.DoctorSchedules
-                .Where(s => s.DoctorId == doctorId)
-                .ToListAsync();
-
-            ViewModel = new DoctorScheduleViewModel
-            {
-                DoctorId = doctorId.Value,
-                DoctorName = doctor.Name,
-                Events = specialSchedules.SelectMany(s =>
+                if (doctorId == null)
                 {
-                    // Десериализация work_hours из JSON
-                    var intervals = JsonSerializer.Deserialize<List<TimeInterval>>(s.WorkHours);
-                    return intervals.Select(i => new ScheduleEvent
-                    {
-                        Title = i.IsBreak ? "Перерыв" : "Прием",
-                        Start = DateTime.Parse($"{s.WorkDate:yyyy-MM-dd}T{i.Start}"),
-                        End = DateTime.Parse($"{s.WorkDate:yyyy-MM-dd}T{i.End}"),
-                        Color = i.IsBreak ? "#dc3545" : "#28a745",
-                        IsBreak = i.IsBreak
-                    });
-                }).ToList()
-            };
+                    await _logService.LogAction(currentUserId,
+                        "Попытка открытия страницы расписания без указания ID врача");
+                    return NotFound();
+                }
 
-            return Page();
+                var doctor = await _context.Doctors.FindAsync(doctorId);
+                if (doctor == null)
+                {
+                    await _logService.LogAction(currentUserId,
+                        $"Попытка открытия расписания для несуществующего врача ID: {doctorId}");
+                    return NotFound();
+                }
+
+                var specialSchedules = await _context.DoctorSchedules
+                    .Where(s => s.DoctorId == doctorId)
+                    .ToListAsync();
+
+                ViewModel = new DoctorScheduleViewModel
+                {
+                    DoctorId = doctorId.Value,
+                    DoctorName = doctor.Name,
+                    Events = specialSchedules.SelectMany(s =>
+                    {
+                        var intervals = JsonSerializer.Deserialize<List<TimeInterval>>(s.WorkHours);
+                        return intervals.Select(i => new ScheduleEvent
+                        {
+                            Title = i.IsBreak ? "Перерыв" : "Прием",
+                            Start = DateTime.Parse($"{s.WorkDate:yyyy-MM-dd}T{i.Start}"),
+                            End = DateTime.Parse($"{s.WorkDate:yyyy-MM-dd}T{i.End}"),
+                            Color = i.IsBreak ? "#dc3545" : "#28a745",
+                            IsBreak = i.IsBreak
+                        });
+                    }).ToList()
+                };
+
+                await _logService.LogAction(currentUserId,
+                    $"Просмотр расписания врача: {doctor.Name} (ID: {doctorId})");
+
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                await _logService.LogAction(currentUserId,
+                    $"Ошибка при загрузке расписания врача ID: {doctorId}: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
             try
             {
                 var events = JsonSerializer.Deserialize<List<ScheduleEvent>>(EventsJson);
+
+                // Логирование перед сохранением
+                await _logService.LogAction(currentUserId,
+                    $"Начало сохранения расписания для врача ID: {ViewModel.DoctorId}. " +
+                    $"Количество событий: {events?.Count ?? 0}");
 
                 // Преобразуем в локальное время
                 foreach (var e in events)
@@ -99,9 +131,17 @@ namespace VeterinaryClinic.Pages
                 var oldSchedules = await _context.DoctorSchedules
                     .Where(s => s.DoctorId == ViewModel.DoctorId)
                     .ToListAsync();
-                _context.DoctorSchedules.RemoveRange(oldSchedules);
 
-                // Добавляем новые
+                if (oldSchedules.Any())
+                {
+                    await _logService.LogAction(currentUserId,
+                        $"Удаление старого расписания врача ID: {ViewModel.DoctorId}. " +
+                        $"Количество удаляемых дней: {oldSchedules.Count}");
+
+                    _context.DoctorSchedules.RemoveRange(oldSchedules);
+                }
+
+                // Добавляем новые записи
                 foreach (var day in grouped)
                 {
                     var json = JsonSerializer.Serialize(day.Intervals);
@@ -115,10 +155,22 @@ namespace VeterinaryClinic.Pages
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Детальное логирование сохраненного расписания
+                var scheduleInfo = string.Join(", ", grouped.Select(g =>
+                    $"{g.Date:dd.MM.yyyy} ({g.Intervals.Count} интервалов)"));
+
+                await _logService.LogAction(currentUserId,
+                    $"Успешное сохранение расписания для врача ID: {ViewModel.DoctorId}. " +
+                    $"Дни: {scheduleInfo}");
+
                 return RedirectToPage(new { doctorId = ViewModel.DoctorId });
             }
             catch (Exception ex)
             {
+                await _logService.LogAction(currentUserId,
+                    $"Ошибка при сохранении расписания врача ID: {ViewModel.DoctorId}: {ex.Message}");
+
                 ModelState.AddModelError("", $"Ошибка при сохранении: {ex.Message}");
                 return Page();
             }

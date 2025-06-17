@@ -20,7 +20,7 @@ public class Doctor
     [Column("bio")]
     public string Bio { get; set; }
     [Column("photo_url")]
-    public string PhotoUrl { get; set; }
+    public string? PhotoUrl { get; set; }
 
     public User User { get; set; }
     public List<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();

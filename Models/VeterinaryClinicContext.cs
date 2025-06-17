@@ -34,7 +34,7 @@ public partial class VeterinaryClinicContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-CUNQ1O8;Database=VeterinaryClinic;Integrated Security=True;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-CUNQ1O8;Database=VeterinaryClinic1;Integrated Security=True;TrustServerCertificate=True");
     public DbSet<PasswordResetCode> PasswordResetCodes { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -191,6 +191,7 @@ public partial class VeterinaryClinicContext : DbContext
         {
             entity.HasKey(e => e.ServiceId).HasName("PK__Services__3E0DB8AF0CA78ACA");
 
+
             entity.Property(e => e.ServiceId).HasColumnName("service_id");
             entity.Property(e => e.Description)
                 .HasColumnType("text")
@@ -207,6 +208,7 @@ public partial class VeterinaryClinicContext : DbContext
             entity.Property(e => e.Specialization)
                 .HasMaxLength(100)
                 .HasColumnName("specialization");
+
         });
 
         modelBuilder.Entity<User>(entity =>

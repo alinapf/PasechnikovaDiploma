@@ -166,6 +166,7 @@
 
     <form method="post" enctype="multipart/form-data">
         <input type="hidden" asp-for="Doctor.DoctorId" />
+        <input type="hidden" asp-for="Doctor.PhotoUrl" id="currentPhotoUrl" />
 
         <div class="form-group">
             <label asp-for="Doctor.Name">Имя</label>
@@ -187,14 +188,24 @@
 
         <div class="form-group">
             <label>Фото врача</label>
-            @if (!string.IsNullOrEmpty(Model.Doctor.PhotoUrl))
-            {
-                <div class="mb-2">
-                    <img src="@Model.Doctor.PhotoUrl" alt="Фото врача" style="max-width: 200px; max-height: 200px;" />
-                </div>
-            }
-            <input type="file" asp-for="PhotoFile" class="form-control" accept="image/*" />
+            <div class="image-preview-container mb-2">
+                <img id="imagePreview"
+                     src="@(string.IsNullOrEmpty(Model.Doctor.PhotoUrl) ? "/images/doctors/default.jpg" : Model.Doctor.PhotoUrl)"
+                     alt="Фото врача"
+                     style="max-width: 200px; max-height: 200px;"
+                     class="img-thumbnail" />
+            </div>
+            <input type="file" name="PhotoFile" class="form-control" accept="image/*" id="imageUpload" />
             <span asp-validation-for="PhotoFile" class="text-danger"></span>
+            <div class="form-text">При редактировании оставьте поле пустым, чтобы сохранить текущее фото</div>
+            @if (Model.Doctor.DoctorId != 0)
+            {
+                <input type="hidden" asp-for="Doctor.PhotoUrl" />
+            }
+            <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removeImageBtn"
+                    style="@(string.IsNullOrEmpty(Model.Doctor.PhotoUrl) || Model.Doctor.PhotoUrl == "/images/doctors/default.jpg" ? "display:none;" : "")">
+                Удалить фото
+            </button>
         </div>
 
         <button type="submit" class="btn btn-primary">Сохранить</button>
@@ -204,4 +215,62 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+            const defaultImage = '/images/doctors/default.jpg';
+
+            // Проверяем, является ли текущее фото фото по умолчанию
+            function isDefaultImage() {
+                return imagePreview.src.includes(defaultImage) ||
+                       imagePreview.src === window.location.origin + defaultImage;
+            }
+
+            // Инициализация кнопки удаления при загрузке страницы
+            if (isDefaultImage()) {
+                removeImageBtn.style.display = 'none';
+            } else {
+                removeImageBtn.style.display = 'block';
+            }
+
+            // Обработка выбора нового изображения
+            imageUpload.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        removeImageBtn.style.display = 'block';
+                    }
+
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+
+            // Обработка удаления изображения
+            removeImageBtn.addEventListener('click', function() {
+                imageUpload.value = ''; // Очищаем поле загрузки файла
+                imagePreview.src = defaultImage;
+
+                // Если это редактирование существующего врача, устанавливаем флаг для удаления фото
+                if (document.getElementById('Doctor_DoctorId') && document.getElementById('Doctor_DoctorId').value !== '0') {
+                    // Создаем скрытое поле для указания, что фото нужно удалить
+                    let deletePhotoInput = document.getElementById('DeletePhoto');
+                    if (!deletePhotoInput) {
+                        deletePhotoInput = document.createElement('input');
+                        deletePhotoInput.type = 'hidden';
+                        deletePhotoInput.name = 'DeletePhoto';
+                        deletePhotoInput.id = 'DeletePhoto';
+                        deletePhotoInput.value = 'true';
+                        document.querySelector('form').appendChild(deletePhotoInput);
+                    }
+                }
+
+                removeImageBtn.style.display = 'none';
+            });
+        });
+    </script>
 }

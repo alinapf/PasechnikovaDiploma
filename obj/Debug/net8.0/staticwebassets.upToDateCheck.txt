@@ -2,6 +2,7 @@ wwwroot\css\site1.css
 wwwroot\css\stars1.css
 wwwroot\css\stars22.css
 wwwroot\favico.ico
+wwwroot\icon.ico
 wwwroot\images\doctors\1.jpg
 wwwroot\images\doctors\2.jpg
 wwwroot\images\doctors\default.jpg

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 using VeterinaryClinic.Models;
+using VeterinaryClinic.Services;
 
 namespace VeterinaryClinic.Pages
 {
@@ -11,11 +12,13 @@ namespace VeterinaryClinic.Pages
     {
         private readonly VeterinaryClinicContext _context;
         private readonly PasswordHasher<User> _passwordHasher;
+        private readonly LogService _logService;
 
-        public ResetPasswordModel(VeterinaryClinicContext context)
+        public ResetPasswordModel(VeterinaryClinicContext context, LogService logService)
         {
             _context = context;
             _passwordHasher = new PasswordHasher<User>();
+            _logService = logService;
         }
 
         [BindProperty]
@@ -47,11 +50,15 @@ namespace VeterinaryClinic.Pages
         {
             if (!ModelState.IsValid)
             {
+                await _logService.LogAction(null,
+                    $"Неудачная попытка сброса пароля для {Email}: невалидная модель");
                 return Page();
             }
 
             if (NewPassword != ConfirmPassword)
             {
+                await _logService.LogAction(null,
+                    $"Неудачная попытка сброса пароля для {Email}: пароли не совпадают");
                 ModelState.AddModelError(string.Empty, "Пароли не совпадают.");
                 return Page();
             }
@@ -66,6 +73,8 @@ namespace VeterinaryClinic.Pages
 
             if (resetCode == null)
             {
+                await _logService.LogAction(null,
+                    $"Неудачная попытка сброса пароля для {Email}: неверный или просроченный код");
                 ModelState.AddModelError(string.Empty, "Неверный или просроченный код восстановления.");
                 return Page();
             }
@@ -74,9 +83,15 @@ namespace VeterinaryClinic.Pages
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == Email);
             if (user == null)
             {
+                await _logService.LogAction(null,
+                    $"Неудачная попытка сброса пароля: пользователь с email {Email} не найден");
                 ModelState.AddModelError(string.Empty, "Пользователь не найден.");
                 return Page();
             }
+
+            // Логируем перед изменением пароля
+            await _logService.LogAction(user.UserId,
+                $"Инициирован сброс пароля для пользователя {user.Email} (ID: {user.UserId})");
 
             // Обновляем пароль
             user.Password = _passwordHasher.HashPassword(user, NewPassword);
@@ -85,6 +100,10 @@ namespace VeterinaryClinic.Pages
             resetCode.IsUsed = true;
 
             await _context.SaveChangesAsync();
+
+            // Логируем успешное изменение
+            await _logService.LogAction(user.UserId,
+                $"Пароль успешно изменен для пользователя {user.Email} (ID: {user.UserId})");
 
             return RedirectToPage("./ResetPasswordConfirmation");
         }

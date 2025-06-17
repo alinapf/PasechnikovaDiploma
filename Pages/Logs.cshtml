@@ -51,6 +51,42 @@
             padding: 0 20px;
         }
 
+        .filters-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-container {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        .date-container {
+            flex: 1;
+            min-width: 300px;
+            max-width: 350px;
+        }
+
+        .search-input, .date-input {
+            padding: 12px 20px;
+            width: 100%;
+            border: 2px solid var(--primary-color);
+            border-radius: 50px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+            .search-input:focus, .date-input:focus {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+            }
+
         .logs-table {
             width: 100%;
             border-collapse: separate;
@@ -142,6 +178,13 @@
             background-color: rgba(78, 140, 255, 0.05);
         }
 
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+            font-size: 1.2rem;
+        }
+
         /* Анимации */
         @@keyframes fadeIn {
             from {
@@ -165,12 +208,29 @@
                 display: block;
                 overflow-x: auto;
             }
+
+            .filters-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
 
+
 <div class="logs-container">
     <h1 class="logs-header">Логи системы</h1>
+
+    <div class="filters-container">
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Поиск по пользователю..."
+                   value="@Model.SearchString" />
+        </div>
+        <div class="date-container">
+            <input type="date" id="dateInput" class="date-input"
+                   value="@(Model.SelectedDate?.ToString("yyyy-MM-dd"))" />
+        </div>
+    </div>
 
     <table class="logs-table">
         <thead>
@@ -180,11 +240,12 @@
                 <th>Время</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="logsTableBody">
             @foreach (var log in Model.Logs)
             {
                 <tr class="animate-fade @(log.User == null ? "system-log" : "user-log")"
-                    style="animation-delay: @(Model.Logs.IndexOf(log) * 0.05)s">
+                    data-user="@(log.User?.Username ?? "System")"
+                    data-date="@log.Timestamp?.ToString("yyyy-MM-dd")">
                     <td>
                         <div class="log-user">@(log.User?.Username ?? "System")</div>
                     </td>
@@ -198,16 +259,50 @@
             }
         </tbody>
     </table>
+    <div id="noResults" class="no-results" style="display: none;">
+        Ничего не найдено
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        // Плавное появление элементов
         document.addEventListener('DOMContentLoaded', function() {
-            const animatedElements = document.querySelectorAll('.animate-fade');
-            animatedElements.forEach((el, index) => {
+            const searchInput = document.getElementById('searchInput');
+            const dateInput = document.getElementById('dateInput');
+            const logsTableBody = document.getElementById('logsTableBody');
+            const noResults = document.getElementById('noResults');
+            const logRows = Array.from(logsTableBody.getElementsByTagName('tr'));
+
+            // Плавное появление элементов
+            logRows.forEach((el, index) => {
                 el.style.animationDelay = `${index * 0.05}s`;
             });
+
+            function filterLogs() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedDate = dateInput.value;
+                let hasResults = false;
+
+                logRows.forEach(row => {
+                    const username = row.getAttribute('data-user').toLowerCase();
+                    const logDate = row.getAttribute('data-date');
+
+                    const matchesSearch = searchTerm === '' || username.includes(searchTerm);
+                    const matchesDate = selectedDate === '' || logDate === selectedDate;
+
+                    if (matchesSearch && matchesDate) {
+                        row.style.display = '';
+                        hasResults = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                noResults.style.display = hasResults ? 'none' : 'block';
+            }
+
+            searchInput.addEventListener('input', filterLogs);
+            dateInput.addEventListener('change', filterLogs);
         });
     </script>
 }
