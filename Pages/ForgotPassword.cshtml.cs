@@ -93,7 +93,7 @@ namespace VeterinaryClinic.Pages
                 await _logService.LogAction(user.UserId,
                     $"Отправлено письмо для восстановления пароля пользователю ID: {user.UserId}");
 
-                return RedirectToPage("./ForgotPasswordConfirmation");
+                return RedirectToPage("./ForgotPasswordConfirmation", new { email = Email });
             }
             catch (Exception ex)
             {

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-
+using System.ComponentModel.DataAnnotations;
 using VeterinaryClinic.Models;
 using VeterinaryClinic.Services;
 
@@ -25,6 +25,8 @@ namespace VeterinaryClinic.Pages
         public string Email { get; set; }
 
         [BindProperty]
+        [Required(ErrorMessage = "Введите код восстановления")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "Код должен содержать 6 символов")]
         public string Code { get; set; }
 
         [BindProperty]
@@ -32,26 +34,38 @@ namespace VeterinaryClinic.Pages
 
         [BindProperty]
         public string ConfirmPassword { get; set; }
-
+        public string DisplayEmail { get; set; }
         public IActionResult OnGet(string email, string code)
         {
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(code))
+            if (string.IsNullOrEmpty(email))
             {
                 return RedirectToPage("/Error");
             }
 
             Email = email;
-            Code = code;
+            DisplayEmail = AnonymizeEmail(email);
+            if (!string.IsNullOrEmpty(code) && code.Length == 6)
+            {
+                Code = code;
+            }
 
             return Page();
         }
+        private string AnonymizeEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email) || !email.Contains("@"))
+                return email;
 
+            var parts = email.Split('@');
+            if (parts[0].Length <= 3)
+                return $"{parts[0].Substring(0, 1)}***@{parts[1]}";
+
+            return $"{parts[0].Substring(0, 3)}***@{parts[1]}";
+        }
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
             {
-                await _logService.LogAction(null,
-                    $"Неудачная попытка сброса пароля для {Email}: невалидная модель");
                 return Page();
             }
 
@@ -63,11 +77,11 @@ namespace VeterinaryClinic.Pages
                 return Page();
             }
 
-            // Проверяем код восстановления
+            // Проверяем код восстановления (с учетом регистра и пробелов)
             var resetCode = await _context.PasswordResetCodes
                 .FirstOrDefaultAsync(rc =>
                     rc.Email == Email &&
-                    rc.Code == Code &&
+                    rc.Code.Trim() == Code.Trim() && // Удаляем возможные пробелы
                     !rc.IsUsed &&
                     rc.ExpirationDate > DateTime.UtcNow);
 
