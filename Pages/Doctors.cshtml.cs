@@ -85,15 +85,15 @@ namespace VeterinaryClinic.Pages
                 return "График не указан";
 
             var dayNames = new Dictionary<DayOfWeek, string>
-    {
-        {DayOfWeek.Monday, "Пн"},
-        {DayOfWeek.Tuesday, "Вт"},
-        {DayOfWeek.Wednesday, "Ср"},
-        {DayOfWeek.Thursday, "Чт"},
-        {DayOfWeek.Friday, "Пт"},
-        {DayOfWeek.Saturday, "Сб"},
-        {DayOfWeek.Sunday, "Вс"}
-    };
+            {
+                {DayOfWeek.Monday, "Пн"},
+                {DayOfWeek.Tuesday, "Вт"},
+                {DayOfWeek.Wednesday, "Ср"},
+                {DayOfWeek.Thursday, "Чт"},
+                {DayOfWeek.Friday, "Пт"},
+                {DayOfWeek.Saturday, "Сб"},
+                {DayOfWeek.Sunday, "Вс"}
+            };
 
             // Получаем даты текущей недели (с понедельника по воскресенье)
             var today = DateTime.Today;
@@ -141,7 +141,7 @@ namespace VeterinaryClinic.Pages
                 }
             }
 
-            return string.Join("\n", result);
+            return string.Join("<br>", result);
         }
 
         private List<string> GetAvailableTimes(List<DoctorSchedule> schedules, DateTime date, int doctorId)

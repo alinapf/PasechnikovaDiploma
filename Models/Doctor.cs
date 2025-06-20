@@ -25,7 +25,6 @@ public class Doctor
     public User User { get; set; }
     public List<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
 
-    public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 }
 
 

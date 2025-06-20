@@ -384,6 +384,7 @@
             align-items: center;
             gap: 8px;
             margin-top: 20px;
+            margin-bottom: 20px;
         }
 
             .btn-add:hover {
@@ -544,12 +545,12 @@
 
 <div class="container">
     <h2>Наши ветеринары</h2>
-
+    @if (User.IsInRole("Админ"))
+    {
+        <a class="btn btn-add" asp-page="/AddDoctors">Добавить нового врача</a>
+    }
     <div class="doctors-container">
-        @if (User.IsInRole("Админ"))
-        {
-            <a class="btn btn-add" asp-page="/AddDoctors">Добавить нового врача</a>
-        }
+        
         @foreach (var doctor in Model.Doctors)
         {
             <div class="doctor-card">
@@ -582,7 +583,7 @@
                         <span class="rating-value">@doctor.Rating.ToString("0.0")</span>
                     </div>
 
-                    <p class="schedule">@doctor.Schedule</p>
+                    <p class="schedule">@Html.Raw(doctor.Schedule)</p>
 
                     @if (!string.IsNullOrEmpty(doctor.Bio))
                     {
