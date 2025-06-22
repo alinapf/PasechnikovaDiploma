@@ -387,6 +387,8 @@
                 <th>Дата</th>
                 <th>Время</th>
                 <th>Статус</th>
+                <th>Услуга</th>
+                <th>Длительность</th>
                 @if (User.IsInRole("Админ"))
                 {
                     <th>Действия</th>
@@ -442,6 +444,12 @@
                                 }
                             }
                             <span class="appointment-status @statusClass">@appointment.Status</span>
+                        </td>
+                        <td data-label="Услуга">
+                            <span class="appointment-service">@appointment.ServiceName</span>
+                        </td>
+                        <td data-label="Длительность">
+                            <span class="appointment-duration">@appointment.DurationMinutes мин.</span>
                         </td>
                         @if (User.IsInRole("Админ"))
                         {

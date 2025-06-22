@@ -28,28 +28,28 @@ namespace VeterinaryClinic.Pages
         {
             try
             {
-                User = await _context.Users.FindAsync(id);
-
                 if (id == null)
                 {
-                    await _logService.LogAction(User.UserId,
-                        "Открыта страница создания нового пользователя");
+                    // Режим создания нового пользователя - пользователь ещё не существует
+                    await _logService.LogAction(null, "Открыта страница создания нового пользователя");
                     return Page();
                 }
-                await _logService.LogAction(User.UserId,
-                    $"Открыта страница редактирования пользователя ID: {id}");
+
                 // Режим редактирования существующего пользователя
+                User = await _context.Users.FindAsync(id);
 
                 if (User == null)
                 {
-                    await _logService.LogAction(User.UserId,
-                        $"Попытка редактирования несуществующего пользователя ID: {id}");
+                    await _logService.LogAction(null, $"Попытка редактирования несуществующего пользователя ID: {id}");
                     return NotFound();
                 }
+
+                await _logService.LogAction(User.UserId, $"Открыта страница редактирования пользователя ID: {id}");
+
                 var logMessage = $"Редактирование пользователя: " +
-                                 $"Username: {User.Username}, " +
-                                 $"Email: {User.Email}, " +
-                                 $"Role: {User.Role}";
+                                $"Имя: {User.Username}, " +
+                                $"Email: {User.Email}, " +
+                                $"Роль: {User.Role}";
 
                 await _logService.LogAction(User.UserId, logMessage);
 
@@ -57,8 +57,7 @@ namespace VeterinaryClinic.Pages
             }
             catch (Exception ex)
             {
-                await _logService.LogAction(User.UserId,
-                    $"Ошибка при открытии страницы пользователя: {ex.Message}");
+                await _logService.LogAction(null, $"Ошибка при открытии страницы пользователя: {ex.Message}");
                 throw;
             }
         }

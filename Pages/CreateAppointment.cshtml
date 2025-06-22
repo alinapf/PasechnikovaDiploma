@@ -315,15 +315,17 @@
         function loadAvailableTimes() {
             var selectedDate = $('#datepicker').val();
             var doctorId = $('#doctorSelect').val();
+            var serviceId = $('#serviceSelect').val();
 
             if (doctorId && selectedDate) {
                 $.get('/CreateAppointment?handler=AvailableTimes', { 
                     date: selectedDate, 
-                    doctorId: doctorId 
+                    doctorId: doctorId,
+                    serviceId: serviceId // Добавляем ID услуги
                 }, function(data) {
                     var timeSelect = $('#timeSelect');
                     timeSelect.empty().append('<option value="">Выберите время</option>');
-                    
+                
                     if (data && data.length > 0) {
                         $.each(data, function(i, time) {
                             timeSelect.append($('<option>').val(time).text(time));
@@ -352,7 +354,8 @@
                         $.each(data, function(i, service) {
                             serviceSelect.append($('<option>')
                                 .val(service.serviceId)
-                                .text(service.name));
+                                .text(service.name)
+                                .text(service.name + ' (' + service.durationMinutes + ' мин)'));
                         });
                     } else {
                         serviceSelect.append('<option value="">Нет доступных услуг</option>');

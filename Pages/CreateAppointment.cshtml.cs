@@ -119,103 +119,173 @@ namespace VeterinaryClinic.Pages
 
             try
             {
+                // 1. Проверка доступности времени с учетом длительности услуги
+                var service = await _context.Services.FindAsync(SelectedServiceId);
+                var serviceDuration = service?.DurationMinutes ?? 30;
+                var endTime = SelectedTime.Add(TimeSpan.FromMinutes(serviceDuration));
+
+                // Проверяем рабочие часы врача
+                var schedule = await _context.DoctorSchedules
+                    .FirstOrDefaultAsync(s => s.DoctorId == SelectedDoctorId && s.WorkDate == Date.Date);
+
+                if (schedule == null)
+                {
+                    ModelState.AddModelError("", "Врач не работает в выбранную дату");
+                    await ReloadPageData(currentUserId);
+                    return Page();
+                }
+
+                var workHours = JsonSerializer.Deserialize<List<WorkHour>>(schedule.WorkHours);
+                var isWithinWorkingHours = workHours.Any(wh =>
+                    !wh.IsBreak &&
+                    SelectedTime >= TimeSpan.Parse(wh.Start) &&
+                    endTime <= TimeSpan.Parse(wh.End));
+
+                if (!isWithinWorkingHours)
+                {
+                    ModelState.AddModelError("", "Выбранное время выходит за рамки рабочего дня врача");
+                    await ReloadPageData(currentUserId);
+                    return Page();
+                }
+
+                // Проверяем конфликты с другими записями
+                var result = await _context.Appointments
+                    .Where(a => a.DoctorId == SelectedDoctorId &&
+                               a.Date.Date == Date.Date &&
+                               a.AppointmentId != (IsEditMode ? AppointmentId : null))
+                    .Select(a => new
+                    {
+                        Appointment = a,
+                        Duration = a.Service != null ? a.Service.DurationMinutes : 30
+                    })
+                    .ToListAsync();
+
+                var conflictingAppointments = result
+                    .Where(x =>
+                    {
+                        var appointmentEnd = x.Appointment.Time.Add(TimeSpan.FromMinutes(x.Duration));
+                        return x.Appointment.Time < endTime && appointmentEnd > SelectedTime;
+                    })
+                    .Select(x => x.Appointment)
+                    .ToList();
+
+                if (conflictingAppointments.Any())
+                {
+                    var conflictTimes = string.Join(", ",
+                        conflictingAppointments.Select(a => $"{a.Time:hh\\:mm}-{a.Time.Add(TimeSpan.FromMinutes(a.Service.DurationMinutes)):hh\\:mm}"));
+
+                    ModelState.AddModelError("",
+                        $"Выбранное время пересекается с другими записями: {conflictTimes}");
+                    await ReloadPageData(currentUserId);
+                    return Page();
+                }
+
+                // 2. Общая валидация модели
                 if (!ModelState.IsValid)
                 {
                     await _logService.LogAction(currentUserId,
                         "Неудачная попытка сохранения записи: невалидная модель");
-                    Doctors = await GetDoctorsAsync();
-                    Clients = await GetClientsAsync();
-                    Services = await GetServicesAsync(SelectedDoctorId);
+                    await ReloadPageData(currentUserId);
                     return Page();
                 }
 
+                // 3. Обработка редактирования существующей записи
                 if (IsEditMode && AppointmentId.HasValue)
                 {
-                    await _logService.LogAction(currentUserId,
-                        $"Сохранение изменений записи ID: {AppointmentId.Value}");
-
-                    var appointment = await _context.Appointments.FindAsync(AppointmentId.Value);
-                    if (appointment != null)
-                    {
-                        var changes = new List<string>();
-
-                        if (appointment.DoctorId != SelectedDoctorId)
-                            changes.Add($"Врач: {appointment.DoctorId} → {SelectedDoctorId}");
-                        if (appointment.ClientId != SelectedClientId)
-                            changes.Add($"Клиент: {appointment.ClientId} → {SelectedClientId}");
-                        if (appointment.Date != Date)
-                            changes.Add($"Дата: {appointment.Date.ToShortDateString()} → {Date.ToShortDateString()}");
-                        if (appointment.Time != SelectedTime)
-                            changes.Add($"Время: {appointment.Time} → {SelectedTime}");
-                        if (appointment.ServiceId != SelectedServiceId)
-                            changes.Add($"Услуга: {appointment.ServiceId} → {SelectedServiceId}");
-                        if (appointment.Status != Status)
-                            changes.Add($"Статус: {appointment.Status} → {Status}");
-
-                        appointment.DoctorId = SelectedDoctorId;
-                        appointment.ClientId = SelectedClientId;
-                        appointment.Date = Date;
-                        appointment.Time = SelectedTime;
-                        appointment.ServiceId = SelectedServiceId;
-                        appointment.Status = Status;
-
-                        await _context.SaveChangesAsync();
-
-                        if (changes.Any())
-                        {
-                            await _logService.LogAction(currentUserId,
-                                $"Изменения записи ID: {AppointmentId.Value}: {string.Join("; ", changes)}");
-                        }
-                        else
-                        {
-                            await _logService.LogAction(currentUserId,
-                                $"Попытка сохранения записи ID: {AppointmentId.Value} без изменений");
-                        }
-                    }
-                }
-                else
-                {
-                    var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == currentUserId);
-                    if (client != null)
-                    {
-                        SelectedClientId = client.ClientId;
-                    }
-
-                    await _logService.LogAction(currentUserId,
-                        $"Создание новой записи: врач ID {SelectedDoctorId}, " +
-                        $"клиент ID {SelectedClientId}, дата {Date.ToShortDateString()}, " +
-                        $"время {SelectedTime}, услуга ID {SelectedServiceId}");
-
-                    var appointment = new Appointment
-                    {
-                        ClientId = SelectedClientId,
-                        DoctorId = SelectedDoctorId,
-                        Date = Date,
-                        Time = SelectedTime,
-                        Status = Status,
-                        ServiceId = SelectedServiceId
-                    };
-
-                    _context.Appointments.Add(appointment);
-                    await _context.SaveChangesAsync();
-
-                    await _logService.LogAction(currentUserId,
-                        $"Создана новая запись ID: {appointment.AppointmentId}");
+                    return await HandleEditMode(currentUserId);
                 }
 
-                return RedirectToPage("/Appointment");
+                // 4. Обработка создания новой записи
+                return await HandleCreateMode(currentUserId);
             }
             catch (Exception ex)
             {
                 await _logService.LogAction(currentUserId,
                     $"Ошибка при сохранении записи: {ex.Message}");
                 ModelState.AddModelError("", "Произошла ошибка при сохранении записи");
-                Doctors = await GetDoctorsAsync();
-                Clients = await GetClientsAsync();
-                Services = await GetServicesAsync(SelectedDoctorId);
+                await ReloadPageData(currentUserId);
                 return Page();
             }
         }
+
+        private async Task<IActionResult> HandleEditMode(int currentUserId)
+        {
+            var appointment = await _context.Appointments.FindAsync(AppointmentId.Value);
+            if (appointment == null)
+            {
+                await _logService.LogAction(currentUserId,
+                    $"Попытка редактирования несуществующей записи ID: {AppointmentId.Value}");
+                return NotFound();
+            }
+
+            var changes = new List<string>();
+
+            if (appointment.DoctorId != SelectedDoctorId)
+                changes.Add($"Врач: {appointment.DoctorId} → {SelectedDoctorId}");
+            if (appointment.ClientId != SelectedClientId)
+                changes.Add($"Клиент: {appointment.ClientId} → {SelectedClientId}");
+            if (appointment.Date != Date)
+                changes.Add($"Дата: {appointment.Date:d} → {Date:d}");
+            if (appointment.Time != SelectedTime)
+                changes.Add($"Время: {appointment.Time:hh\\:mm} → {SelectedTime:hh\\:mm}");
+            if (appointment.ServiceId != SelectedServiceId)
+                changes.Add($"Услуга: {appointment.ServiceId} → {SelectedServiceId}");
+            if (appointment.Status != Status)
+                changes.Add($"Статус: {appointment.Status} → {Status}");
+
+            // Обновляем только измененные поля
+            appointment.DoctorId = SelectedDoctorId;
+            appointment.ClientId = SelectedClientId;
+            appointment.Date = Date;
+            appointment.Time = SelectedTime;
+            appointment.ServiceId = SelectedServiceId;
+            appointment.Status = Status;
+
+            await _context.SaveChangesAsync();
+
+            if (changes.Any())
+            {
+                await _logService.LogAction(currentUserId,
+                    $"Изменения записи ID: {AppointmentId.Value}: {string.Join("; ", changes)}");
+            }
+            else
+            {
+                await _logService.LogAction(currentUserId,
+                    $"Попытка сохранения записи ID: {AppointmentId.Value} без изменений");
+            }
+
+            return RedirectToPage("/Appointment");
+        }
+
+        private async Task<IActionResult> HandleCreateMode(int currentUserId)
+        {
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == currentUserId);
+            if (client != null)
+            {
+                SelectedClientId = client.ClientId;
+            }
+
+            var appointment = new Appointment
+            {
+                ClientId = SelectedClientId,
+                DoctorId = SelectedDoctorId,
+                Date = Date,
+                Time = SelectedTime,
+                Status = Status,
+                ServiceId = SelectedServiceId
+            };
+
+            _context.Appointments.Add(appointment);
+            await _context.SaveChangesAsync();
+
+            await _logService.LogAction(currentUserId,
+                $"Создана новая запись ID: {appointment.AppointmentId}. " +
+                $"Детали: врач {SelectedDoctorId}, клиент {SelectedClientId}, " +
+                $"{Date:d} {SelectedTime:hh\\:mm}, услуга {SelectedServiceId}");
+
+            return RedirectToPage("/Appointment");
+        }
+
 
         private async Task<List<DoctorViewModel>> GetDoctorsAsync()
         {
@@ -262,19 +332,28 @@ namespace VeterinaryClinic.Pages
                 .Select(s => new ServiceViewModel
                 {
                     ServiceId = s.ServiceId,
-                    Name = s.Name
+                    Name = s.Name,
+                    DurationMinutes = s.DurationMinutes
                 })
                 .ToListAsync();
         }
 
-        public async Task<IActionResult> OnGetAvailableTimes(DateTime date, int doctorId)
+        private async Task<List<string>> GetAvailableTimesAsync(DateTime date, int doctorId, int serviceId = 0)
         {
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             try
             {
-                await _logService.LogAction(currentUserId,
-                    $"Запрос доступного времени для врача ID: {doctorId} на дату {date.ToShortDateString()}");
+                // Получаем информацию об услуге
+                var serviceDuration = TimeSpan.FromMinutes(30); // Дефолтная длительность
+                if (serviceId > 0)
+                {
+                    var service = await _context.Services.FindAsync(serviceId);
+                    if (service != null)
+                    {
+                        serviceDuration = TimeSpan.FromMinutes(service.DurationMinutes);
+                    }
+                }
 
                 var availableTimes = new List<string>();
                 var schedule = await _context.DoctorSchedules
@@ -282,43 +361,89 @@ namespace VeterinaryClinic.Pages
 
                 if (schedule == null)
                 {
-                    await _logService.LogAction(currentUserId,
-                        $"Врач ID: {doctorId} не работает {date.ToShortDateString()}");
-                    return new JsonResult(availableTimes);
+                    return availableTimes;
                 }
 
                 var workHours = JsonSerializer.Deserialize<List<WorkHour>>(schedule.WorkHours);
-                var bookedTimes = await _context.Appointments
+                var appointments = await _context.Appointments
                     .Where(a => a.DoctorId == doctorId && a.Date.Date == date.Date)
-                    .Select(a => a.Time)
+                    .Select(a => new { a.Time, a.ServiceId })
                     .ToListAsync();
+
+                // Создаем список занятых интервалов с учетом длительности услуг
+                var busyIntervals = new List<(TimeSpan Start, TimeSpan End)>();
+                foreach (var app in appointments)
+                {
+                    var appDuration = TimeSpan.FromMinutes(30); // Дефолтная длительность
+                    if (app.ServiceId.HasValue)
+                    {
+                        var appService = await _context.Services.FindAsync(app.ServiceId.Value);
+                        if (appService != null)
+                        {
+                            appDuration = TimeSpan.FromMinutes(appService.DurationMinutes);
+                        }
+                    }
+                    busyIntervals.Add((app.Time, app.Time.Add(appDuration)));
+                }
 
                 foreach (var workHour in workHours.Where(wh => !wh.IsBreak))
                 {
-                    var startTime = TimeSpan.Parse(workHour.Start);
-                    var endTime = TimeSpan.Parse(workHour.End);
+                    var workStart = TimeSpan.Parse(workHour.Start);
+                    var workEnd = TimeSpan.Parse(workHour.End);
 
-                    var currentTime = startTime;
-                    while (currentTime < endTime)
+                    var currentSlotStart = workStart;
+                    while (currentSlotStart.Add(serviceDuration) <= workEnd)
                     {
-                        if (!bookedTimes.Contains(currentTime))
+                        var currentSlotEnd = currentSlotStart.Add(serviceDuration);
+
+                        // Проверяем, не пересекается ли текущий слот с занятыми интервалами
+                        bool isAvailable = true;
+                        foreach (var busy in busyIntervals)
                         {
-                            availableTimes.Add(currentTime.ToString(@"hh\:mm"));
+                            if (currentSlotStart < busy.End && currentSlotEnd > busy.Start)
+                            {
+                                isAvailable = false;
+                                break;
+                            }
                         }
-                        currentTime = currentTime.Add(TimeSpan.FromMinutes(30));
+
+                        if (isAvailable)
+                        {
+                            availableTimes.Add(currentSlotStart.ToString(@"hh\:mm"));
+                        }
+
+                        currentSlotStart = currentSlotStart.Add(TimeSpan.FromMinutes(30));
                     }
                 }
 
-                await _logService.LogAction(currentUserId,
-                    $"Найдено {availableTimes.Count} доступных слотов для врача ID: {doctorId}");
-
-                return new JsonResult(availableTimes);
+                return availableTimes;
             }
             catch (Exception ex)
             {
                 await _logService.LogAction(currentUserId,
                     $"Ошибка при получении доступного времени: {ex.Message}");
-                return new JsonResult(new List<string>());
+                return new List<string>();
+            }
+        }
+
+        // Обновленный обработчик HTTP-запроса
+        public async Task<IActionResult> OnGetAvailableTimes(DateTime date, int doctorId, int serviceId = 0)
+        {
+            var availableTimes = await GetAvailableTimesAsync(date, doctorId, serviceId);
+            return new JsonResult(availableTimes);
+        }
+
+        // Обновленный метод ReloadPageData
+        private async Task ReloadPageData(int currentUserId)
+        {
+            Doctors = await GetDoctorsAsync();
+            Clients = await GetClientsAsync();
+            Services = await GetServicesAsync(SelectedDoctorId);
+
+            // Загружаем доступное время для выбранных параметров
+            if (SelectedDoctorId > 0 && Date != default)
+            {
+                AvailableTimes = await GetAvailableTimesAsync(Date, SelectedDoctorId, SelectedServiceId);
             }
         }
 

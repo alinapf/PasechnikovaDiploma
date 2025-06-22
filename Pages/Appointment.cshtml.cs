@@ -78,7 +78,9 @@ namespace VeterinaryClinic.Pages
                         DoctorName = a.Doctor.Name,
                         Date = a.Date,
                         Time = a.Time,
-                        Status = a.Status
+                        Status = a.Status,
+                        ServiceName = a.Service != null ? a.Service.Name : "Не указана",
+                        DurationMinutes = a.Service != null ? a.Service.DurationMinutes : 0
                     })
                     .ToListAsync();
 
