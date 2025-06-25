@@ -70,6 +70,7 @@ namespace VeterinaryClinic.Pages
                     var appointment = await _context.Appointments
                         .Include(a => a.Doctor)
                         .Include(a => a.Client)
+                        .Include(a => a.Service)
                         .FirstOrDefaultAsync(a => a.AppointmentId == id.Value);
 
                     if (appointment != null)
@@ -81,6 +82,17 @@ namespace VeterinaryClinic.Pages
                         SelectedServiceId = appointment.ServiceId ?? 0;
                         Status = appointment.Status;
                         Services = await GetServicesAsync(appointment.DoctorId);
+
+                        // Получаем доступное время, включая текущее время записи
+                        AvailableTimes = await GetAvailableTimesAsync(Date, appointment.DoctorId, appointment.ServiceId ?? 0);
+
+                        // Добавляем текущее время записи, если его нет в списке доступных
+                        var currentTimeStr = appointment.Time.ToString(@"hh\:mm");
+                        if (!AvailableTimes.Contains(currentTimeStr))
+                        {
+                            AvailableTimes.Add(currentTimeStr);
+                            AvailableTimes = AvailableTimes.OrderBy(t => TimeSpan.Parse(t)).ToList();
+                        }
 
                         await _logService.LogAction(currentUserId,
                             $"Загружены данные записи: врач ID {appointment.DoctorId}, " +
@@ -338,7 +350,7 @@ namespace VeterinaryClinic.Pages
                 .ToListAsync();
         }
 
-        private async Task<List<string>> GetAvailableTimesAsync(DateTime date, int doctorId, int serviceId = 0)
+        private async Task<List<string>> GetAvailableTimesAsync(DateTime date, int doctorId, int serviceId = 0, int? excludeAppointmentId = null)
         {
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
@@ -366,7 +378,9 @@ namespace VeterinaryClinic.Pages
 
                 var workHours = JsonSerializer.Deserialize<List<WorkHour>>(schedule.WorkHours);
                 var appointments = await _context.Appointments
-                    .Where(a => a.DoctorId == doctorId && a.Date.Date == date.Date)
+                    .Where(a => a.DoctorId == doctorId &&
+                               a.Date.Date == date.Date &&
+                               (excludeAppointmentId == null || a.AppointmentId != excludeAppointmentId))
                     .Select(a => new { a.Time, a.ServiceId })
                     .ToListAsync();
 

@@ -299,17 +299,65 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-            // Если врач уже выбран (из параметра), убедимся что он отображается в select
-            var selectedDoctorId = '@Model.SelectedDoctorId';
-            if (selectedDoctorId && selectedDoctorId !== '0') {
-                document.getElementById('doctorSelect').value = selectedDoctorId;
-                
-                // Дополнительно: можно вызвать загрузку услуг для этого врача
-                if (typeof loadServices === 'function') {
-                    loadServices(selectedDoctorId);
-                }
+        // Если врач уже выбран (из параметра), убедимся что он отображается в select
+        var selectedDoctorId = '@Model.SelectedDoctorId';
+        if (selectedDoctorId && selectedDoctorId !== '0') {
+            document.getElementById('doctorSelect').value = selectedDoctorId;
+            
+            // Дополнительно: можно вызвать загрузку услуг для этого врача
+            if (typeof loadServices === 'function') {
+                loadServices(selectedDoctorId);
             }
-        });
+        }
+
+        // Устанавливаем выбранную дату
+        var dateValue = '@Model.Date.ToString("yyyy-MM-dd")';
+        if (dateValue && dateValue !== '1/1/0001') {
+            document.getElementById('datepicker').value = dateValue;
+        }
+
+        // Устанавливаем выбранное время
+        var selectedTime = '@Model.SelectedTime.ToString(@"hh\:mm")';
+        if (selectedTime && selectedTime !== '00:00') {
+            setTimeout(function() {
+                var timeSelect = document.getElementById('timeSelect');
+                if (timeSelect) {
+                    // Проверяем, есть ли уже это время в списке
+                    var optionExists = Array.from(timeSelect.options).some(opt => opt.value === selectedTime);
+                    
+                    // Если времени нет в списке, добавляем его
+                    if (!optionExists) {
+                        var option = document.createElement('option');
+                        option.value = selectedTime;
+                        option.text = selectedTime;
+                        option.selected = true;
+                        timeSelect.add(option);
+                    }
+                    
+                    // Устанавливаем выбранное значение
+                    timeSelect.value = selectedTime;
+                }
+            }, 500); // Небольшая задержка для загрузки динамических данных
+        }
+
+        // Устанавливаем выбранную услугу
+        var selectedServiceId = '@Model.SelectedServiceId';
+        if (selectedServiceId && selectedServiceId !== '0') {
+            setTimeout(function() {
+                var serviceSelect = document.getElementById('serviceSelect');
+                if (serviceSelect) {
+                    serviceSelect.value = selectedServiceId;
+                }
+            }, 500);
+        }
+
+        // Устанавливаем статус
+        var status = '@Model.Status';
+        if (status && document.getElementById('statusSelect')) {
+            document.getElementById('statusSelect').value = status;
+        }
+    });
+
     $(function() {
         // Функция для загрузки доступного времени
         function loadAvailableTimes() {
@@ -321,15 +369,22 @@
                 $.get('/CreateAppointment?handler=AvailableTimes', { 
                     date: selectedDate, 
                     doctorId: doctorId,
-                    serviceId: serviceId // Добавляем ID услуги
+                    serviceId: serviceId
                 }, function(data) {
                     var timeSelect = $('#timeSelect');
+                    var currentSelectedTime = timeSelect.val();
+                    
                     timeSelect.empty().append('<option value="">Выберите время</option>');
                 
                     if (data && data.length > 0) {
                         $.each(data, function(i, time) {
                             timeSelect.append($('<option>').val(time).text(time));
                         });
+                        
+                        // Восстанавливаем выбранное время, если оно есть в новом списке
+                        if (currentSelectedTime && timeSelect.find('option[value="' + currentSelectedTime + '"]').length > 0) {
+                            timeSelect.val(currentSelectedTime);
+                        }
                     } else {
                         timeSelect.append('<option value="">Нет доступного времени</option>');
                     }
@@ -343,6 +398,7 @@
         function loadServices() {
             var doctorId = $('#doctorSelect').val();
             var serviceSelect = $('#serviceSelect');
+            var currentSelectedService = serviceSelect.val();
             
             serviceSelect.empty().append('<option value="">Выберите услугу</option>');
 
@@ -354,9 +410,13 @@
                         $.each(data, function(i, service) {
                             serviceSelect.append($('<option>')
                                 .val(service.serviceId)
-                                .text(service.name)
                                 .text(service.name + ' (' + service.durationMinutes + ' мин)'));
                         });
+                        
+                        // Восстанавливаем выбранную услугу, если она есть в новом списке
+                        if (currentSelectedService && serviceSelect.find('option[value="' + currentSelectedService + '"]').length > 0) {
+                            serviceSelect.val(currentSelectedService);
+                        }
                     } else {
                         serviceSelect.append('<option value="">Нет доступных услуг</option>');
                     }
@@ -373,6 +433,7 @@
         // Инициализация при загрузке страницы
         if ($('#doctorSelect').val()) {
             loadServices();
+            loadAvailableTimes();
         }
     });
 </script>

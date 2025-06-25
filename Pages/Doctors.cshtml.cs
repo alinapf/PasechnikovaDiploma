@@ -35,38 +35,65 @@ namespace VeterinaryClinic.Pages
                 var doctorsData = await _context.Doctors
                     .Include(d => d.User)
                     .Include(d => d.Schedules)
-                    .Select(d => new
-                    {
-                        Doctor = d,
-                        Schedules = d.Schedules,
-                        Reviews = _context.Reviews
-                            .Where(r => r.DoctorId == d.DoctorId)
-                            .Join(_context.Clients,
-                                r => r.ClientId,
-                                c => c.ClientId,
-                                (r, c) => new ReviewViewModel
-                                {
-                                    ClientName = c.Name ?? "Аноним",
-                                    Comment = r.Comment,
-                                    Rating = r.Rating
-                                })
-                            .ToList()
-                    })
                     .ToListAsync();
 
-                // Convert to view model
-                Doctors = doctorsData.Select(data => new DoctorViewModel
+                var doctorsList = new List<DoctorViewModel>();
+
+                foreach (var doctor in doctorsData)
                 {
-                    DoctorId = data.Doctor.DoctorId,
-                    Name = data.Doctor.Name,
-                    Specialization = data.Doctor.Specialization,
-                    Rating = data.Doctor.Rating,
-                    PhotoUrl = data.Doctor.PhotoUrl,
-                    Bio = data.Doctor.Bio,
-                    Schedule = FormatWeeklySchedule(data.Schedules),
-                    Reviews = data.Reviews,
-                    AvailableTimes = GetAvailableTimes(data.Schedules, DateTime.Today, data.Doctor.DoctorId)
-                }).ToList();
+                    // Получаем все отзывы для врача (включая на модерации)
+                    var allReviews = await _context.Reviews
+                        .Where(r => r.DoctorId == doctor.DoctorId)
+                        .Join(_context.Clients,
+                            r => r.ClientId,
+                            c => c.ClientId,
+                            (r, c) => new ReviewViewModel
+                            {
+                                ReviewId = r.ReviewId,
+                                ClientName = c.Name ?? "Аноним",
+                                Comment = r.Comment,
+                                Rating = r.Rating,
+                                CreatedAt = r.CreatedAt,
+                                Status = r.Status
+                            })
+                        .ToListAsync();
+
+                    // Рассчитываем средний рейтинг по всем отзывам
+                    if (allReviews.Any())
+                    {
+                        double newRating = allReviews.Average(r => r.Rating);
+                        doctor.Rating = (int)Math.Round(newRating);
+
+                        // Обновляем рейтинг врача в базе данных
+                        _context.Doctors.Update(doctor);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // Фильтруем отзывы - только одобренные
+                    var approvedReviews = allReviews
+                        .Where(r => r.Status == "Одобрено")
+                        .ToList();
+
+                    // Получаем расписание врача
+                    var schedules = await _context.DoctorSchedules
+                        .Where(s => s.DoctorId == doctor.DoctorId)
+                        .ToListAsync();
+
+                    doctorsList.Add(new DoctorViewModel
+                    {
+                        DoctorId = doctor.DoctorId,
+                        Name = doctor.Name,
+                        Specialization = doctor.Specialization,
+                        Rating = doctor.Rating,
+                        PhotoUrl = doctor.PhotoUrl,
+                        Bio = doctor.Bio,
+                        Schedule = FormatWeeklySchedule(schedules),
+                        Reviews = approvedReviews,
+                        AvailableTimes = GetAvailableTimes(schedules, DateTime.Today, doctor.DoctorId)
+                    });
+                }
+
+                Doctors = doctorsList;
 
                 await _logService.LogAction(null,
                     $"Успешная загрузка страницы врачей. Загружено врачей: {Doctors.Count}");

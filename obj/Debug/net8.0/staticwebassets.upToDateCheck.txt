@@ -4,7 +4,11 @@ wwwroot\css\stars22.css
 wwwroot\favico.ico
 wwwroot\icon.ico
 wwwroot\images\doctors\1.jpg
+wwwroot\images\doctors\1266ad2a-fda4-4774-a47a-296ec55a969f.jpg
 wwwroot\images\doctors\2.jpg
+wwwroot\images\doctors\2862949b-2870-4473-aa6d-12e60c50fea8.jpg
+wwwroot\images\doctors\547bbdfc-9450-4935-9963-07298e272de6.jpg
+wwwroot\images\doctors\b9a1d47b-708d-4fec-b1e3-cb274cb384fe.jpg
 wwwroot\images\doctors\default.jpg
 wwwroot\js\site.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
